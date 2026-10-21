@@ -186,6 +186,84 @@ textarea.inp{min-height:280px;font:13px/1.6 var(--mono)}
 .logo.img{border:0;box-shadow:none;background:none;padding:0;width:40px;height:40px}
 .logo.img img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 0 5px rgba(0,200,255,.7))}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---- ticket ---- */
+.tk{position:relative;background:linear-gradient(180deg,#0c1622,#081018);border:1px solid var(--line-2);border-radius:22px;padding:26px 20px 22px;text-align:center;box-shadow:0 0 30px rgba(0,200,255,.12)}
+.tk-ok svg{width:58px;height:58px;fill:none;stroke:var(--ok);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 10px rgba(61,255,168,.55))}
+.tk-ok circle{stroke-dasharray:132;stroke-dashoffset:132;animation:trazo .6s ease-out forwards}
+.tk-ok path{stroke-dasharray:40;stroke-dashoffset:40;animation:trazo .35s .45s ease-out forwards}
+@keyframes trazo{to{stroke-dashoffset:0}}
+.tk-total{font:800 44px/1.1 var(--display);letter-spacing:-.04em;margin-top:8px;color:var(--ink);text-shadow:0 0 22px rgba(0,200,255,.45)}
+.tk-sub{color:var(--muted);font-size:14px;margin-top:2px}
+.tk-cut{border-top:2px dashed rgba(0,200,255,.22);margin:18px -20px 14px}
+.tk-lines{display:flex;flex-direction:column;gap:8px;text-align:left}
+.tk-lines+.tk-lines{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.tk-lines div{display:flex;justify-content:space-between;gap:12px;font-size:14px}
+.tk-lines b{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tk-lines span{text-align:left}
+.tk-debe{color:var(--warn)}
+.tk-send{gap:10px;margin-top:6px}
+.btn.wa{display:flex;align-items:center;justify-content:center;gap:10px;text-decoration:none;background:#25d366;color:#04140a;box-shadow:0 0 22px rgba(37,211,102,.4)}
+.tk-ver summary{cursor:pointer;color:var(--muted);font-size:13px}
+.tk-ver pre{white-space:pre-wrap;margin:8px 0 0;font:12.5px/1.5 var(--mono);color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.tk-ok circle,.tk-ok path{animation:none;stroke-dashoffset:0}.gn-agua{animation:none!important}}
+/* ---- control ---- */
+.ctl-hero{display:grid;grid-template-columns:118px 1fr;gap:18px;align-items:center;padding:18px;border-radius:24px;border:1px solid var(--line);background:radial-gradient(120% 140% at 0% 100%,color-mix(in srgb,var(--t) 16%,transparent),transparent 60%),var(--panel)}
+.ctl-ok{--t:var(--agua)} .ctl-warn{--t:var(--warn)} .ctl-bad{--t:var(--bad)}
+.ctl-v h3{font-size:21px;color:var(--t);text-shadow:0 0 14px color-mix(in srgb,var(--t) 50%,transparent)}
+.ctl-v p{margin:6px 0 10px;font-size:13px}
+.ctl-n{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted)}
+.ctl-n b{font:800 18px var(--mono);margin-right:3px}
+.c-bad b{color:var(--bad)} .c-warn b{color:var(--warn)} .c-low b{color:var(--ink)}
+.gn{width:118px;height:auto;display:block}
+.gn-cap{fill:var(--t)} .gn-neck{fill:none;stroke:var(--t);stroke-width:2.5;opacity:.7}
+.gn-body{fill:none;stroke:var(--t);stroke-width:3;filter:drop-shadow(0 0 8px color-mix(in srgb,var(--t) 70%,transparent))}
+.gn-rib{stroke:var(--t);stroke-width:1.5;opacity:.25}
+.gn-agua path{fill:var(--t);opacity:.32}
+.gn-agua{animation:ola 4s ease-in-out infinite alternate}
+@keyframes ola{from{transform:translateX(0)}to{transform:translateX(-40px)}}
+.gn text{font:800 30px var(--mono);fill:var(--ink);letter-spacing:-.04em}
+.ctl-pend{border-color:color-mix(in srgb,var(--warn) 55%,transparent);box-shadow:0 0 22px rgba(255,194,71,.12)}
+.ctl-pend h3{display:flex;align-items:center;gap:10px;color:var(--warn)}
+.pulso{width:10px;height:10px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 0 rgba(255,194,71,.6);animation:pulso 1.8s infinite}
+@keyframes pulso{70%{box-shadow:0 0 0 10px rgba(255,194,71,0)}100%{box-shadow:0 0 0 0 rgba(255,194,71,0)}}
+.pend{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:12px}
+.pend-m{font:800 22px var(--mono)!important;color:var(--ink)}
+.al{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.al li{position:relative;padding:11px 12px 11px 16px;border-radius:12px;background:var(--soft);font-size:14px;line-height:1.45}
+.al li::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:4px;border-radius:4px;background:var(--c);box-shadow:0 0 10px var(--c)}
+.al-alta{--c:var(--bad)} .al-media{--c:var(--warn)} .al-baja{--c:var(--muted)}
+.trab{gap:14px}
+.trab-h{display:flex;align-items:center;gap:12px}
+.ava{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;font:800 19px var(--display);color:var(--agua);border:1.5px solid var(--agua);box-shadow:var(--glow)}
+.nv{display:flex;flex-direction:column;gap:5px}
+.nv-t{display:flex;justify-content:space-between;font-size:14px}
+.nv-t b{font-family:var(--mono)}
+.nv small{color:var(--muted);font-size:12px}
+.nv-b{height:10px;border-radius:10px;background:var(--soft);overflow:hidden;border:1px solid var(--line)}
+.nv-b i{display:block;height:100%;border-radius:10px;background:linear-gradient(90deg,rgba(0,200,255,.55),var(--agua));box-shadow:0 0 12px rgba(0,200,255,.6)}
+.nv-mal .nv-t b{color:var(--bad)} .nv-mal .nv-b i{background:linear-gradient(90deg,rgba(255,84,114,.5),var(--bad));box-shadow:0 0 12px rgba(255,84,114,.55)}
+.tchips{display:flex;flex-wrap:wrap;gap:6px}
+.tchip{font-size:12.5px;padding:5px 10px;border-radius:99px;background:var(--bad-soft);color:#ffb3c0;border:1px solid rgba(255,84,114,.35)}
+.tchip b{color:var(--bad);font-family:var(--mono)}
+.cq{display:flex;flex-direction:column;gap:9px}
+.cq-r{display:grid;grid-template-columns:42px 1fr auto;gap:10px;align-items:center}
+.cq-d{font:600 12px var(--mono);color:var(--muted)}
+.cq-b{position:relative;height:14px}
+.cq-b i{position:absolute;top:0;bottom:0;left:0;border-radius:4px}
+i.cq-s{background:transparent;border:1px dashed rgba(0,200,255,.55);box-sizing:border-box}
+i.cq-v{background:var(--agua);box-shadow:0 0 10px rgba(0,200,255,.5);top:3px;bottom:3px}
+i.cq-l{background:var(--ok);opacity:.85;top:3px;bottom:3px}
+.cq-ley{display:flex;gap:14px;font-size:12px;color:var(--muted)}
+.cq-ley span{display:flex;align-items:center;gap:6px}
+.cq-ley i{position:static;display:inline-block;width:14px;height:8px;border-radius:3px}
+.bp{display:flex;justify-content:space-between;align-items:center;gap:12px;border-top:1px solid var(--line);padding-top:10px}
+.bp>div{min-width:0}
+.bp b{display:block;font-size:14px}
+.bp small{display:block;font-size:12.5px}
+.bp-m{font-family:var(--mono);color:var(--bad);white-space:nowrap}
+.tp{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tp b{display:block;font:800 26px var(--mono);letter-spacing:-.03em}
 </style>
 </head>
 <body>
@@ -1222,25 +1300,35 @@ VISTAS.separador = () => {
 };
 
 /* ============ ticket después de vender o cobrar ============ */
+const ICON_WA = '<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.9 11.9 0 0 0 4.6 4c1.7.7 2.4.8 3.2.7.5-.1 1.5-.6 1.8-1.2.2-.6.2-1.1.1-1.2l-.4-.2z"/></svg>';
 VISTAS.ticket = () => {
   const t = S.ticket;
   if (!t) return marco('Ticket', '', '<p class="muted">Sin ticket.</p>', true);
   const avisos = [];
-  if (t.fuera) avisos.push(`<div class="badbox">Esta venta quedó marcada: se registró a ${t.distancia >= 1000 ? (t.distancia / 1000).toFixed(1) + ' km' : t.distancia + ' m'} del cliente. Registra las ventas frente al cliente.</div>`);
+  if (t.fuera) avisos.push(`<div class="badbox">Esta venta quedó marcada: se registró a ${t.distancia >= 1000 ? (t.distancia / 1000).toFixed(1) + ' km' : t.distancia + ' m'} del cliente. Regístrala frente al cliente.</div>`);
   if (t.porConfirmar) avisos.push('<div class="warnbox">Transferencia por confirmar: Oscar revisará que haya llegado.</div>');
+  const lineas = t.texto.split('\n').filter(l => /^• /.test(l)).map(l => l.slice(2));
   return marco(t.tipo === 'abono' ? 'Abono guardado' : 'Venta guardada', nice(t.nombre), `
-    <div class="card okbox" style="border:2px solid var(--ok);text-align:center"><b style="font-size:22px">✓ ${money(t.total)}</b><div style="font-size:14px;margin-top:4px">Saldo del cliente: ${money(Math.max(0, t.saldo))}${t.carga && t.carga.registrada ? ' · te quedan ' + t.carga.garrafones + ' garrafones' : ''}</div></div>
-    ${avisos.join('')}
-    <div class="card" style="gap:10px"><div class="lbl" style="margin:0">Ticket para el cliente</div>
-      <pre style="white-space:pre-wrap;margin:0;font:13px/1.45 inherit;color:var(--muted)">${esc(t.texto)}</pre>
-      ${t.telefono ? `<a class="btn" style="text-decoration:none;text-align:center" target="_blank" data-act="ticketWa" href="${wa(t.telefono, t.texto)}">${t.enviado ? '✓ Ticket abierto en WhatsApp · enviar otra vez' : 'Enviar ticket por WhatsApp'}</a>
-        <small class="muted">Se abre WhatsApp con el mensaje listo; solo toca enviar.</small>`
-      : `<label class="f">WhatsApp del cliente (10 dígitos)<input class="inp" id="tkTel" inputmode="tel" placeholder="311 123 4567"></label>
-        <button class="btn" data-act="ticketTel">Guardar teléfono</button><small class="muted">Pídele su WhatsApp para mandarle su ticket y que vea su saldo.</small>`}
+    <div class="tk">
+      <div class="tk-ok" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="21"/><path d="M14 25l7 7 13-15"/></svg></div>
+      <div class="tk-total">${money(t.total)}</div>
+      <div class="tk-sub">${t.tipo === 'abono' ? 'Pago recibido de ' : 'Venta a '}${esc(nice(t.nombre))}</div>
+      <div class="tk-cut"></div>
+      ${lineas.length ? `<div class="tk-lines">${lineas.map(l => { const [a, b] = l.split(' = '); return `<div><span>${esc(a.replace(/\*/g, ''))}</span><b>${esc(b || '')}</b></div>`; }).join('')}</div>` : ''}
+      <div class="tk-lines"><div><span>Saldo del cliente</span><b class="${t.saldo > 0.5 ? 'tk-debe' : ''}">${money(Math.max(0, t.saldo))}</b></div>
+        ${t.carga && t.carga.registrada ? `<div><span>Te quedan en el motocarro</span><b>${t.carga.garrafones} garrafones</b></div>` : ''}</div>
     </div>
-    <button class="btn sec" data-act="ticketListo">${t.telefono && !t.enviado ? 'Listo sin enviar' : 'Listo'}</button>`, true);
+    ${avisos.join('')}
+    <div class="card tk-send">
+      ${t.telefono ? `<a class="btn wa" target="_blank" data-act="ticketWa" href="${wa(t.telefono, t.texto)}">${ICON_WA}${t.enviado ? 'Ticket enviado · mandar otra vez' : 'Mandar ticket por WhatsApp'}</a>
+        <small class="muted">Se abre WhatsApp con el ticket escrito. Solo toca enviar.</small>`
+      : `<h3>¿A qué WhatsApp le mandamos su ticket?</h3>
+        <input class="inp" id="tkTel" inputmode="tel" placeholder="311 123 4567" aria-label="WhatsApp del cliente">
+        <button class="btn" data-act="ticketTel">Guardar WhatsApp</button><small class="muted">Con su ticket, el cliente ve lo que pagó y su saldo, y te avisa si algo no coincide.</small>`}
+      <details class="tk-ver"><summary>Ver el mensaje completo</summary><pre>${esc(t.texto)}</pre></details>
+    </div>
+    <button class="btn sec" data-act="ticketListo">${t.telefono && !t.enviado ? 'Terminar sin mandar' : 'Terminar'}</button>`, true);
 };
-
 VISTAS.ticket.despues = () => {
   const a = document.querySelector('a[data-act="ticketWa"]');
   if (a) a.addEventListener('click', () => { const t = S.ticket; if (!t) return; t.enviado = true; call('apiTicket', S.token, t.ids, t.idCliente).catch(() => {}); setTimeout(render, 400); });
@@ -1255,44 +1343,73 @@ function rangoControl() {
   if (C.periodo === 'mes') return [menos(29), hoy];
   return [C.desde || menos(6), C.hasta || hoy];
 }
+/* El garrafón se llena según qué tan bien cuadra el negocio: lleno = sin fugas. */
+function garrafonNivel(score, tono) {
+  const top = 34, bottom = 142, y = Math.round(bottom - (bottom - top) * Math.max(0.04, score / 100));
+  return `<svg class="gn gn-${tono}" viewBox="0 0 120 150" role="img" aria-label="Nivel de control ${score} de 100">
+    <defs><clipPath id="gnc"><path d="M30 34h60q10 0 10 12v86q0 10-10 10H30q-10 0-10-10V46q0-12 10-12z"/></clipPath></defs>
+    <rect class="gn-cap" x="44" y="6" width="32" height="12" rx="3"/><path class="gn-neck" d="M48 18h24v8q0 4 6 8H42q6-4 6-8z"/>
+    <g clip-path="url(#gnc)"><g class="gn-agua"><path d="M-40 ${y} q20 -7 40 0 t40 0 t40 0 t40 0 t40 0 V160 H-40z"/></g></g>
+    <path class="gn-body" d="M30 34h60q10 0 10 12v86q0 10-10 10H30q-10 0-10-10V46q0-12 10-12z"/>
+    <path class="gn-rib" d="M20 70h80M20 104h80"/>
+    <text x="60" y="98" text-anchor="middle">${score}</text></svg>`;
+}
+function nivelBar(etq, pct, malo, detalle) {
+  return `<div class="nv ${malo ? 'nv-mal' : ''}"><div class="nv-t"><span>${etq}</span><b>${pct}%</b></div><div class="nv-b"><i style="width:${Math.max(2, Math.min(100, pct))}%"></i></div>${detalle ? `<small>${detalle}</small>` : ''}</div>`;
+}
 VISTAS.control = () => {
   S.control = S.control || { periodo: 'semana', data: null, desde: '', hasta: '' };
   const C = S.control;
   const chips = `<div class="chips">${[['hoy', 'Hoy'], ['semana', '7 días'], ['mes', '30 días'], ['rango', 'Fechas']].map(([k, t]) => `<button class="chip" data-cper="${k}" aria-pressed="${C.periodo === k}">${t}</button>`).join('')}</div>
-    ${C.periodo === 'rango' ? `<div class="btnrow"><input class="inp" type="date" id="cDesde" value="${C.desde}" style="flex:1"><input class="inp" type="date" id="cHasta" value="${C.hasta}" style="flex:1"><button class="btn small" data-act="ctlRango">Ver</button></div>` : ''}`;
+    ${C.periodo === 'rango' ? `<div class="btnrow"><input class="inp" type="date" id="cDesde" value="${C.desde}" style="flex:1" aria-label="Desde"><input class="inp" type="date" id="cHasta" value="${C.hasta}" style="flex:1" aria-label="Hasta"><button class="btn small" data-act="ctlRango">Ver</button></div>` : ''}`;
   if (!C.data) {
     const [de, a] = rangoControl();
-    setTimeout(async () => { try { C.data = await run('apiControl', [S.token, de, a], 'Revisando…'); S.data.porConfirmar = C.data.pendientes.length; render(); } catch (e) {} }, 0);
+    setTimeout(async () => { try { C.data = await run('apiControl', [S.token, de, a], 'Revisando el negocio…'); S.data.porConfirmar = C.data.pendientes.length; render(); } catch (e) {} }, 0);
     return marco('Control antirrobo', 'Revisando…', chips + '<p class="muted">Cargando…</p>', true);
   }
   const r = C.data, pct = (a, b) => (b ? Math.round(a * 100 / b) : 0);
-  const color = { alta: 'badbox', media: 'warnbox', baja: 'okbox' };
-  const pend = r.pendientes.length ? `<div class="card" style="gap:10px"><h3>Transferencias por confirmar</h3><small class="muted">Revisa tu banco y marca cada una.</small>
-      ${r.pendientes.map(p => `<div style="border-top:1px solid var(--line);padding-top:8px"><div class="tot" style="padding:0"><b>${money(p.monto)} · ${esc(nice(p.cliente))}</b><small class="muted">${fmtDia(p.dia)}</small></div>
-        <small class="muted">${p.tipo === 'VENTA' ? 'Venta' : 'Abono'} registrado por ${esc(nice(p.registro))}</small>
-        <div class="btnrow" style="margin-top:6px"><button class="btn small" data-act="verificar" data-id="${p.id}" data-accion="OK">Sí llegó</button>
-        <button class="btn sec small" data-act="verificar" data-id="${p.id}" data-accion="FIADO">${p.tipo === 'VENTA' ? 'No llegó: pasar a fiado' : 'No llegó: anular abono'}</button>
-        <button class="btn sec small" data-act="verificar" data-id="${p.id}" data-accion="REPARTIDOR">No llegó: que lo entregue ${esc(nice(p.registro))}</button></div></div>`).join('')}</div>` : '';
-  const trab = r.trabajadores.length ? `<div class="card" style="gap:10px"><h3>Por trabajador</h3>${r.trabajadores.map(t => {
-      const tot = t.efectivo + t.credito + t.transferencia;
-      const fila = (txt, val, mala) => `<div class="tot" style="padding:2px 0"><span>${txt}</span><b style="${mala ? 'color:var(--bad)' : ''}">${val}</b></div>`;
-      return `<div style="border-top:1px solid var(--line);padding-top:8px"><b>${esc(nice(t.nombre))}</b> <small class="muted">${t.ventas} ventas · ${money(tot)}</small>
-        ${t.ruta ? fila('Registradas junto al cliente', pct(t.enCliente, t.ruta) + '% (' + t.enCliente + ' de ' + t.ruta + ')', pct(t.enCliente, t.ruta) < 60) + fila('Lejos del cliente', t.fuera, t.fuera > 0) + fila('Registradas en la planta', t.enPlanta, t.enPlanta > 0) + fila('Capturadas de golpe', t.rafaga, t.rafaga > 0) + fila('Tickets enviados', t.tickets + ' de ' + t.ruta, pct(t.tickets, t.ruta) < 50) : ''}
-        ${fila('Fiado', money(t.credito) + ' (' + pct(t.credito, tot) + '%)', pct(t.credito, tot) >= 25)}${fila('Transferencias', money(t.transferencia))}${t.cambiosGalon ? fila('Cambios de galón sin cobro', t.cambiosGalon, true) : ''}</div>`;
-    }).join('')}<small class="muted">"Junto al cliente" = a menos de ${r.distancia} m de su ubicación guardada.</small></div>` : '';
-  const cuadre = r.cuadre.length ? `<div class="card" style="gap:6px"><h3>Garrafones por día</h3><small class="muted">Salieron − regresaron llenos − rotos − vendidos en ruta. Debe dar 0.</small>
-      ${tabla(['Día', 'Salió', 'Vend. · Lleno', 'Cuadre'], r.cuadre.map(d => [fmtDia(d.dia), d.viajes ? d.salieron : '—', d.vendidos + ' · ' + (d.llenos + d.rotos),
-        d.sinSalida ? '<span class="pill p-bad">Sin salida</span>' : d.sinRegreso ? `<span class="pill p-warn">${d.sinRegreso} sin regreso</span>` : `<span class="pill ${Math.abs(d.diferencia) <= 2 ? 'p-ok' : 'p-bad'}">${d.diferencia > 0 ? 'faltan ' + d.diferencia : d.diferencia < 0 ? 'sobran ' + (-d.diferencia) : 'cuadra'}</span>`]), [1, 2])}</div>` : '';
-  const bajo = r.bajoPrecio.length ? `<div class="card" style="gap:6px"><h3>Abajo del precio vigente</h3>${tabla(['Cliente', 'Cobrado', 'Menos'], r.bajoPrecio.map(b => [nice(b.cliente) + ' · ' + nice(b.producto), b.cantidad + ' a ' + money(b.cobrado) + ' (vigente ' + money(b.vigente) + ')', money(b.perdido)]), [2])}<small class="muted">Con esta versión el precio lo pone la app; de aquí en adelante debe quedar en ceros.</small></div>` : '';
-  const cortes = r.cortes.length ? `<div class="card" style="gap:6px"><h3>Cortes de efectivo</h3>${tabla(['Día', 'Esperado', 'Entregado', 'Dif.'], r.cortes.map(c => [fmtDia(c.dia), money(c.esperado), money(c.entregado), `<span class="pill ${Math.abs(c.diferencia) < 1 ? 'p-ok' : 'p-bad'}">${money(c.diferencia)}</span>`]), [1, 2, 3])}</div>` : '';
-  const tapas = `<div class="card" style="gap:6px"><h3>Tapas contra garrafones</h3><div class="tot"><span>Garrafones vendidos</span><b>${r.garrafonesVendidos}</b></div><div class="tot"><span>Tapas compradas</span><b>${r.tapas}</b></div>
-      <small class="muted">Cada garrafón lleva una tapa. Registra todas las compras de tapas en "Gasto o compra"; si con el tiempo se usan muchas más tapas que garrafones vendidos, hay agua saliendo sin registrar.</small></div>`;
-  const aj = r.ajustes.length ? `<div class="card" style="gap:6px"><h3>Deudas canceladas con ajuste</h3>${tabla(['Día', 'Cliente', 'Monto'], r.ajustes.map(a => [fmtDia(a.dia), nice(a.cliente), money(a.monto)]), [2])}</div>` : '';
-  const cam = r.cambios.length ? `<div class="card" style="gap:6px"><h3>Cambios delicados</h3>${r.cambios.map(c => `<div style="font-size:13px;border-top:1px solid var(--line);padding:6px 0"><b>${esc(c.cuando)} · ${esc(nice(c.quien))}</b> · ${esc(nice(c.accion))}<br><span class="muted">${esc(c.detalle)}</span></div>`).join('')}</div>` : '';
-  return marco('Control antirrobo', fmtDia(r.desde) + ' al ' + fmtDia(r.hasta), `${chips}
-    ${pend}
-    <div class="card" style="gap:8px"><h3>Alertas</h3>${r.alertas.length ? r.alertas.map(a => `<div class="${color[a.nivel]}">${esc(a.texto)}</div>`).join('') : '<div class="okbox">Sin alertas en este periodo.</div>'}</div>
-    ${trab}${cuadre}${bajo}${cortes}${tapas}${aj}${cam}`, true);
+  const n = { alta: 0, media: 0, baja: 0 }; r.alertas.forEach(a => n[a.nivel]++);
+  const score = Math.max(4, 100 - n.alta * 14 - n.media * 6 - n.baja * 2);
+  const tono = score >= 80 ? 'ok' : score >= 50 ? 'warn' : 'bad';
+  const veredicto = { ok: 'Sin fugas importantes', warn: 'Hay fugas que revisar', bad: 'Se está yendo dinero' }[tono];
+  const hero = `<section class="ctl-hero ctl-${tono}">${garrafonNivel(score, tono)}
+    <div class="ctl-v"><h3>${veredicto}</h3><p class="muted">Del ${fmtDiaLargo(r.desde)} al ${fmtDiaLargo(r.hasta)}. El garrafón se llena cuando todo cuadra.</p>
+      <div class="ctl-n"><span class="c-bad"><b>${n.alta}</b> graves</span><span class="c-warn"><b>${n.media}</b> por revisar</span><span class="c-low"><b>${n.baja}</b> menores</span></div></div></section>`;
+  const pend = r.pendientes.length ? `<section class="card ctl-pend"><h3><i class="pulso"></i>${r.pendientes.length === 1 ? 'Una transferencia' : r.pendientes.length + ' transferencias'} por confirmar</h3><p class="muted" style="margin:0">Revisa tu banco y marca cada una.</p>
+      ${r.pendientes.map(p => `<div class="pend"><div class="tot"><b class="pend-m">${money(p.monto)}</b><small class="muted">${fmtDiaLargo(p.dia)}</small></div>
+        <div>${esc(nice(p.cliente))} <span class="muted">· ${p.tipo === 'VENTA' ? 'venta' : 'abono'} de ${esc(nice(p.registro))}</span></div>
+        <div class="btnrow"><button class="btn small" data-act="verificar" data-id="${p.id}" data-accion="OK">Sí llegó</button>
+        <button class="btn sec small" data-act="verificar" data-id="${p.id}" data-accion="FIADO">${p.tipo === 'VENTA' ? 'No llegó, pasar a fiado' : 'No llegó, anular abono'}</button>
+        <button class="btn sec small" data-act="verificar" data-id="${p.id}" data-accion="REPARTIDOR">No llegó, que lo entregue ${esc(nice(p.registro))}</button></div></div>`).join('')}</section>` : '';
+  const alertas = `<section class="card"><h3>Qué revisar</h3>${r.alertas.length ? `<ul class="al">${r.alertas.map(a => `<li class="al-${a.nivel}">${esc(a.texto)}</li>`).join('')}</ul>` : '<div class="okbox">Todo cuadra en este periodo.</div>'}</section>`;
+  const trab = r.trabajadores.map(t => {
+    const tot = t.efectivo + t.credito + t.transferencia;
+    const chipsT = [[t.fuera, 'lejos del cliente'], [t.enPlanta, 'en la planta'], [t.rafaga, 'capturadas de golpe'], [t.cambiosGalon, 'cambios de galón']].filter(x => x[0]).map(x => `<span class="tchip"><b>${x[0]}</b> ${x[1]}</span>`).join('');
+    return `<section class="card trab"><div class="trab-h"><span class="ava">${esc(nice(t.nombre).charAt(0))}</span><div><h3>${esc(nice(t.nombre))}</h3><small class="muted">${t.ventas} ventas, ${money(tot)}</small></div></div>
+      ${t.ruta ? nivelBar('Registradas frente al cliente', pct(t.enCliente, t.ruta), pct(t.enCliente, t.ruta) < 60, t.enCliente + ' de ' + t.ruta + ' ventas en ruta') + nivelBar('Con ticket al cliente', pct(t.tickets, t.ruta), pct(t.tickets, t.ruta) < 50, t.tickets + ' tickets mandados') : ''}
+      ${tot && (t.ruta || t.credito) ? nivelBar('Vendido a fiado', pct(t.credito, tot), pct(t.credito, tot) >= 25, money(t.credito) + (t.transferencia ? ' · transferencias ' + money(t.transferencia) : '')) : ''}
+      ${chipsT ? `<div class="tchips">${chipsT}</div>` : ''}</section>`;
+  }).join('');
+  const maxS = Math.max(1, ...r.cuadre.map(d => Math.max(d.salieron, d.vendidos + d.llenos + d.rotos)));
+  const cuadre = r.cuadre.length ? `<section class="card"><h3>Garrafones por día</h3><p class="muted" style="margin:0">Lo que salió contra lo vendido y lo que regresó lleno.</p>
+    <div class="cq">${r.cuadre.map(d => {
+      const w = x => (x / maxS * 100).toFixed(1) + '%';
+      const est = d.sinSalida ? ['bad', 'sin salida'] : d.sinRegreso ? ['warn', d.sinRegreso + ' sin regreso'] : Math.abs(d.diferencia) <= 2 ? ['ok', 'cuadra'] : ['bad', d.diferencia > 0 ? 'faltan ' + d.diferencia : 'sobran ' + (-d.diferencia)];
+      return `<div class="cq-r"><span class="cq-d">${fmtDia(d.dia)}</span><div class="cq-b"><i class="cq-s" style="width:${w(d.salieron)}"></i><i class="cq-v" style="width:${w(d.vendidos)}"></i><i class="cq-l" style="left:${w(d.vendidos)};width:${w(d.llenos + d.rotos)}"></i></div><span class="pill p-${est[0]}">${est[1]}</span></div>`;
+    }).join('')}</div>
+    <div class="cq-ley"><span><i class="cq-s"></i>Salieron</span><span><i class="cq-v"></i>Vendidos</span><span><i class="cq-l"></i>Regresaron</span></div></section>` : '';
+  const perdido = r.bajoPrecio.reduce((s, b) => s + b.perdido, 0);
+  const bajo = r.bajoPrecio.length ? `<section class="card"><h3>Cobrado abajo del precio</h3><p class="muted" style="margin:0">${money(perdido)} menos en el periodo. Con esta versión el precio lo pone la app, así que de aquí en adelante debe quedar vacío.</p>
+    ${r.bajoPrecio.map(b => `<div class="bp"><div><b>${esc(nice(b.cliente))}</b><small class="muted">${b.cantidad} ${nice(b.producto).toLowerCase()} a ${money(b.cobrado)}, precio vigente ${money(b.vigente)}</small></div><b class="bp-m">−${money(b.perdido)}</b></div>`).join('')}</section>` : '';
+  const cortes = r.cortes.length ? `<section class="card"><h3>Cortes de efectivo</h3>${r.cortes.map(c => `<div class="bp"><div><b>${fmtDiaLargo(c.dia)}</b><small class="muted">Entregó ${money(c.entregado)} de ${money(c.esperado)}</small></div><span class="pill ${Math.abs(c.diferencia) < 1 ? 'p-ok' : 'p-bad'}">${Math.abs(c.diferencia) < 1 ? 'cuadra' : (c.diferencia < 0 ? 'faltan ' : 'sobran ') + money(Math.abs(c.diferencia))}</span></div>`).join('')}</section>` : '';
+  const ratio = r.garrafonesVendidos ? Math.min(100, r.tapas / r.garrafonesVendidos * 100) : 0;
+  const tapas = `<section class="card"><h3>Tapas contra garrafones</h3>
+    <div class="tp"><div><b>${r.garrafonesVendidos}</b><small class="muted">garrafones vendidos</small></div><div><b>${r.tapas}</b><small class="muted">tapas compradas</small></div></div>
+    <div class="nv-b"><i style="width:${ratio}%"></i></div>
+    <small class="muted">Cada garrafón lleva una tapa. Registra todas las compras de tapas en "Gasto o compra": si con el tiempo se gastan más tapas que garrafones vendidos, hay agua saliendo sin registrar.</small></section>`;
+  const aj = r.ajustes.length ? `<section class="card"><h3>Deudas canceladas con ajuste</h3><p class="muted" style="margin:0">Pagos que nunca se registraron y se dieron por buenos.</p>${r.ajustes.map(a => `<div class="bp"><div><b>${esc(nice(a.cliente))}</b><small class="muted">${fmtDiaLargo(a.dia)}</small></div><b class="bp-m">${money(a.monto)}</b></div>`).join('')}</section>` : '';
+  const cam = r.cambios.length ? `<section class="card"><h3>Cambios delicados</h3>${r.cambios.map(c => `<div class="bp"><div><b>${esc(nice(c.accion))}</b><small class="muted">${esc(c.detalle)}</small></div><small class="muted" style="text-align:right">${esc(c.cuando)}<br>${esc(nice(c.quien))}</small></div>`).join('')}</section>` : '';
+  return marco('Control antirrobo', 'Del ' + fmtDia(r.desde) + ' al ' + fmtDia(r.hasta), `${chips}${hero}${pend}${alertas}${trab}${cuadre}${bajo}${cortes}${tapas}${aj}${cam}`, true);
 };
 
 VISTAS.salida.despues = () => { const i = $('#rSalida'); if (i) i.onchange = () => { S.regSel = i.value; render(); }; };
