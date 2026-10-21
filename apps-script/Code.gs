@@ -42,6 +42,7 @@ const HOJAS_NUEVAS = {
   AGENDA: ['ID', 'ACTIVIDAD', 'TIPO', 'FECHA', 'REPETIR', 'AVISAR_DIAS_ANTES', 'ESTATUS', 'HECHO_EL', 'COSTO', 'NOTA'],
   SEPARADOR: ['CONCEPTO', 'FORMA', 'MONTO', 'NOTA'],
   VERIFICACIONES: ['ID', 'FECHA', 'TIPO', 'ID_MOV', 'CLIENTE', 'MONTO', 'REGISTRO', 'ESTATUS', 'REVISO', 'FECHA_REVISION'],
+  PUSH: ['ID', 'USUARIO', 'ROL', 'ENDPOINT', 'AVISOS', 'PEDIDOS', 'VENTAS', 'CREADO', 'ULTIMO'],
 };
 
 // Lo que se separa cada día (se puede cambiar en la hoja SEPARADOR). FORMA: DIARIO, POR GARRAFON, POR GALON, PORCENTAJE o COMISION.
@@ -666,6 +667,12 @@ function apiVenta(token, data) {
     };
   });
   if (idLocal) { try { cache.put('vl_' + idLocal, JSON.stringify(res), 21600); } catch (e) {} }
+  if (u.rol !== 'DUENO') {
+    const n = res.items.map(x => x.cantidad + ' ' + nombreProd_(x.producto, x.cantidad)).join(' y ');
+    const como = { EFECTIVO: 'efectivo', TRANSFERENCIA: 'transferencia', CREDITO: 'fiado' }[up_(data.metodo)] || '';
+    const cli = (B_nombre_(data.idCliente) || 'cliente');
+    notificar_('VENTAS', 'DUENO', nice_(u.nombre) + ' vendió ' + dinero_(res.total), n + ' a ' + cli + ', ' + como + (res.fuera ? '. Registrada lejos del cliente' : '') + (num_(data.capturada) && Date.now() - num_(data.capturada) > 600000 ? '. Se hizo sin señal a las ' + Utilities.formatDate(new Date(num_(data.capturada)), CONFIG.ZONA, 'HH:mm') : '') + '.', 'inicio');
+  }
   return res;
 }
 
@@ -943,6 +950,7 @@ function pubPedido(data) {
     hojaAvisos_();
     const txt = 'Pedido nuevo: ' + nombre + ' · ' + (garr ? garr + ' garrafones' : '') + (garr && gal ? ' y ' : '') + (gal ? gal + ' galones' : '') + ' para ' + (entrega === hoy ? 'hoy' : entrega) + '. Ya está en la ruta.' + (data.notas ? ' Nota: ' + norm_(data.notas).slice(0, 120) : '');
     conLock_(() => escribir_('AVISOS', { 'ID_AVISO': id_(), 'FECHA_HORA': new Date(), 'DE': 'PEDIDOS', 'ROL_DE': 'SISTEMA', 'PARA': CONFIG.AVISAR_PEDIDOS_A, 'TIPO': 'SOLICITUD', 'MENSAJE': txt, 'ESTATUS': 'ABIERTO', 'LEIDO_POR': '' }));
+    notificar_('PEDIDOS', 'DUENO,PLANTA,' + CONFIG.AVISAR_PEDIDOS_A, 'Pedido de ' + nombre, txt.replace(/^Pedido nuevo: [^·]*· /, ''), 'pedidos');
   } catch (e) {}
   if (CONFIG.AVISAR_PEDIDOS_POR_CORREO) {
     try { MailApp.sendEmail(CONFIG.CORREO_DUENO, 'Pedido nuevo: ' + nombre, nombre + ' pidió ' + garr + ' garrafones y ' + gal + ' galones para el ' + entrega + '.' + (data.notas ? '\nNota: ' + data.notas : '')); } catch (e) {}
@@ -1388,6 +1396,7 @@ function apiAvisoNuevo(token, data) {
     try { MailApp.sendEmail(CONFIG.CORREO_DUENO, 'URGENTE · ' + u.nombre + ': ' + msg.slice(0, 60), u.nombre + ' mandó un aviso urgente desde la app:\n\n' + msg + '\n\nÁbrelo en la app para marcarlo como resuelto.'); } catch (e) {}
   }
   log_(u.nombre, 'AVISO ' + tipo, msg);
+  notificar_('AVISOS', para === 'TODOS' ? 'TODOS' : para + ',DUENO', (tipo === 'URGENTE' ? 'Urgente: ' : 'Aviso de ') + nice_(u.nombre), msg, 'avisos', u.nombre);
   return { ok: true, id: id };
 }
 
@@ -1588,12 +1597,14 @@ function avisoDueno_(u, mensaje, tipo) {
     hojaAvisos_();
     escribir_('AVISOS', { 'ID_AVISO': id_(), 'FECHA_HORA': new Date(), 'DE': u.nombre || 'SISTEMA', 'ROL_DE': u.rol || 'SISTEMA', 'PARA': 'DUENO', 'TIPO': tipo || 'INDICACION', 'MENSAJE': mensaje, 'ESTATUS': 'ABIERTO', 'LEIDO_POR': '' });
   } catch (e) { /* un aviso nunca frena una venta */ }
+  notificar_('AVISOS', 'DUENO', 'Aviso: ' + nice_(u.nombre || 'El Diamante'), mensaje, 'avisos');
 }
 function avisoA_(para, mensaje, tipo) {
   try {
     hojaAvisos_();
     escribir_('AVISOS', { 'ID_AVISO': id_(), 'FECHA_HORA': new Date(), 'DE': 'OSCAR', 'ROL_DE': 'DUENO', 'PARA': para, 'TIPO': tipo || 'INDICACION', 'MENSAJE': mensaje, 'ESTATUS': 'ABIERTO', 'LEIDO_POR': '' });
   } catch (e) {}
+  notificar_('AVISOS', para, tipo === 'URGENTE' ? 'Urgente de Oscar' : 'Aviso de Oscar', mensaje, 'avisos');
 }
 
 // ---------- transferencias por confirmar ----------
@@ -1640,6 +1651,9 @@ function apiVerificar(token, id, accion) {
 // ---------- ticket por WhatsApp y estado de cuenta ----------
 function linkCuenta_(g) { return urlApp_() + '?p=cuenta&c=' + codigoCliente_(norm_(g.principal.ID_CLIENTE)); }
 function telCliente_(g) { const t = digitos_(g.principal.TELEFONO).replace(/^52(?=\d{10}$)/, ''); return t.length === 10 ? t : ''; }
+function B_nombre_(idCliente) {
+  try { const c = leer_('CLIENTES').find(x => norm_(x.ID_CLIENTE) === norm_(idCliente)); return c ? fichaDe_(c.NOMBRE).base.toLowerCase().replace(/(^|\s)(\S)/g, (m, a, b) => a + b.toUpperCase()) : ''; } catch (e) { return ''; }
+}
 function nombreProd_(p, n) {
   const uno = n === 1;
   return ({ GARRAFON: uno ? 'garrafón' : 'garrafones', GALON: uno ? 'galón' : 'galones', 'BOTELLA 1 LT': uno ? 'botella de 1 L' : 'botellas de 1 L', 'BOTELLA 1/2 LT': uno ? 'botella de 1/2 L' : 'botellas de 1/2 L', HIELO: uno ? 'bolsa de hielo' : 'bolsas de hielo', GALONCAMB: uno ? 'cambio de galón' : 'cambios de galón' })[up_(p)] || nice_(p).toLowerCase();
@@ -1864,6 +1878,184 @@ function apiControl(token, desde, hasta) {
     ajustes: ajustes, cortes: cortes, tapas: tapas, garrafonesVendidos: garrafonesVendidos, cambios: cambios.slice(0, 40),
     pendientes: verificacionesPendientes_(), distancia: CONFIG.DISTANCIA_ALERTA_M,
   };
+}
+
+// ======================= NOTIFICACIONES (app instalable) =======================
+/*
+ * Web Push con VAPID. La notificación viaja vacía y el celular le pide a este servidor el texto
+ * (pubPushPendiente), así no hace falta cifrar el contenido. Cada celular elige qué quiere recibir:
+ * avisos del equipo, pedidos de clientes y ventas registradas.
+ */
+const PUSH_TIPOS = ['AVISOS', 'PEDIDOS', 'VENTAS'];
+function pushDefault_(rol, tipo) { return tipo === 'VENTAS' ? rol === 'DUENO' : true; }
+
+var P256_ = null;
+function p256_() {
+  if (P256_) return P256_;
+  var B = function (h) { return BigInt('0x' + h); };
+  P256_ = {
+    p: B('ffffffff00000001000000000000000000000000ffffffffffffffffffffffff'),
+    n: B('ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551'),
+    G: [B('6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296'), B('4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5')]
+  };
+  P256_.a = P256_.p - BigInt(3);
+  return P256_;
+}
+function mod_(a, m) { var r = a % m; return r < BigInt(0) ? r + m : r; }
+function inv_(a, m) {
+  var lm = BigInt(1), hm = BigInt(0), low = mod_(a, m), high = m, Z = BigInt(0);
+  while (low > BigInt(1)) { var r = high / low, nm = hm - lm * r, nw = high - low * r; hm = lm; high = low; lm = nm; low = nw; }
+  return mod_(lm, m);
+}
+function sumaPt_(P, Q) {
+  var c = p256_(), p = c.p;
+  if (!P) return Q; if (!Q) return P;
+  var l;
+  if (P[0] === Q[0]) {
+    if (mod_(P[1] + Q[1], p) === BigInt(0)) return null;
+    l = mod_((BigInt(3) * P[0] * P[0] + c.a) * inv_(BigInt(2) * P[1], p), p);
+  } else {
+    l = mod_((Q[1] - P[1]) * inv_(Q[0] - P[0], p), p);
+  }
+  var x = mod_(l * l - P[0] - Q[0], p);
+  return [x, mod_(l * (P[0] - x) - P[1], p)];
+}
+function porEscalar_(k, P) {
+  var R = null, A = P;
+  while (k > BigInt(0)) { if (k & BigInt(1)) R = sumaPt_(R, A); A = sumaPt_(A, A); k = k >> BigInt(1); }
+  return R;
+}
+function bytesAHex_(b) { return b.map(function (x) { var v = (x < 0 ? x + 256 : x).toString(16); return v.length === 1 ? '0' + v : v; }).join(''); }
+function hexABytes_(h) { var o = []; for (var i = 0; i < h.length; i += 2) { var v = parseInt(h.substr(i, 2), 16); o.push(v > 127 ? v - 256 : v); } return o; }
+function big32_(x) { var h = x.toString(16); while (h.length < 64) h = '0' + h; return h; }
+function b64url_(bytes) { return Utilities.base64EncodeWebSafe(bytes).replace(/=+$/, ''); }
+function azarN_() {
+  var c = p256_(), k = BigInt(0);
+  while (k === BigInt(0)) {
+    var h = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, Utilities.getUuid() + Utilities.getUuid() + Date.now() + Math.random(), Utilities.Charset.UTF_8);
+    k = mod_(BigInt('0x' + bytesAHex_(h)), c.n);
+  }
+  return k;
+}
+function vapid_() {
+  var pr = PropertiesService.getScriptProperties(), d = pr.getProperty('VAPID_D'), pub = pr.getProperty('VAPID_PUB');
+  if (!d || !pub) {
+    var c = p256_(), k = azarN_(), Q = porEscalar_(k, c.G);
+    d = big32_(k); pub = b64url_(hexABytes_('04' + big32_(Q[0]) + big32_(Q[1])));
+    pr.setProperty('VAPID_D', d); pr.setProperty('VAPID_PUB', pub);
+  }
+  return { d: d, pub: pub };
+}
+function firmarES256_(texto, dHex) {
+  var c = p256_(), d = BigInt('0x' + dHex);
+  var e = BigInt('0x' + bytesAHex_(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, texto, Utilities.Charset.UTF_8)));
+  while (true) {
+    var k = azarN_(), R = porEscalar_(k, c.G), r = mod_(R[0], c.n);
+    if (r === BigInt(0)) continue;
+    var s = mod_(inv_(k, c.n) * (e + r * d), c.n);
+    if (s === BigInt(0)) continue;
+    return b64url_(hexABytes_(big32_(r) + big32_(s)));
+  }
+}
+function jwtVapid_(endpoint) {
+  const aud = String(endpoint).match(/^https:\/\/[^\/]+/)[0];
+  const cache = CacheService.getScriptCache(), k = 'jwt_' + aud.replace(/[^a-z0-9]/gi, '').slice(0, 200);
+  const ya = cache.get(k);
+  if (ya) return JSON.parse(ya);
+  const v = vapid_();
+  const enc = o => b64url_(Utilities.newBlob(JSON.stringify(o)).getBytes());
+  const cuerpo = enc({ typ: 'JWT', alg: 'ES256' }) + '.' + enc({ aud: aud, exp: Math.floor(Date.now() / 1000) + 12 * 3600, sub: 'mailto:' + CONFIG.CORREO_DUENO });
+  const t = { jwt: cuerpo + '.' + firmarES256_(cuerpo, v.d), pub: v.pub };
+  try { cache.put(k, JSON.stringify(t), 6 * 3600); } catch (e) {}
+  return t;
+}
+function idSub_(endpoint) { return bytesAHex_(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(endpoint), Utilities.Charset.UTF_8)).slice(0, 24); }
+
+function apiPushClave(token) { sesion_(token); return { llave: vapid_().pub }; }
+
+/** Guarda (o actualiza) el celular de quien está dentro y lo que quiere recibir. */
+function apiPushSuscribir(token, endpoint, prefs) {
+  const u = sesion_(token);
+  const ep = norm_(endpoint);
+  if (!/^https:\/\/[a-z0-9.-]+\//i.test(ep) || ep.length > 1000) throw new Error('No se pudo activar en este celular.');
+  hojaNueva_('PUSH');
+  return conLock_(() => {
+    const id = idSub_(ep);
+    const previa = leer_('PUSH').find(s => norm_(s.ID) === id);
+    const p = {};
+    PUSH_TIPOS.forEach(t => {
+      const v = prefs ? prefs[t.toLowerCase()] : undefined;
+      p[t] = v === undefined ? (previa ? up_(previa[t]) : (pushDefault_(u.rol, t) ? 'SI' : 'NO')) : (v ? 'SI' : 'NO');
+    });
+    const fila = Object.assign({ 'ID': id, 'USUARIO': u.nombre, 'ROL': u.rol, 'ENDPOINT': ep, 'ULTIMO': new Date() }, p);
+    if (previa) actualizar_('PUSH', previa._fila, fila);
+    else escribir_('PUSH', Object.assign({ 'CREADO': new Date() }, fila));
+    return { ok: true, prefs: { avisos: p.AVISOS === 'SI', pedidos: p.PEDIDOS === 'SI', ventas: p.VENTAS === 'SI' } };
+  });
+}
+function apiPushQuitar(token, endpoint) {
+  sesion_(token);
+  return conLock_(() => {
+    const s = leer_('PUSH').find(x => norm_(x.ID) === idSub_(endpoint));
+    if (s) hoja_('PUSH').deleteRow(s._fila);
+    return { ok: true };
+  });
+}
+function apiPushProbar(token, endpoint) {
+  const u = sesion_(token);
+  const s = leer_('PUSH').find(x => norm_(x.ID) === idSub_(endpoint));
+  if (!s) throw new Error('Primero activa las notificaciones en este celular.');
+  return { ok: true, enviadas: enviarPush_([s], 'Prueba de El Diamante', 'Así te llegarán los avisos, pedidos y ventas, ' + nice_(u.nombre) + '.', 'inicio') };
+}
+
+/** Manda una notificación a quien corresponda. para: 'TODOS', un rol ('DUENO','RUTA','PLANTA') o un nombre; lista separada por comas. */
+function notificar_(tipo, para, titulo, texto, vista, menos) {
+  try {
+    const dest = String(para || '').split(',').map(up_).filter(Boolean);
+    const subs = leer_('PUSH').filter(s => {
+      if (up_(s[tipo]) !== 'SI') return false;
+      if (menos && up_(s.USUARIO) === up_(menos)) return false;
+      return dest.indexOf('TODOS') >= 0 || dest.indexOf(up_(s.ROL)) >= 0 || dest.indexOf(up_(s.USUARIO)) >= 0;
+    });
+    return enviarPush_(subs, titulo, texto, vista);
+  } catch (e) { console.warn('push', e); return 0; }
+}
+function enviarPush_(subs, titulo, texto, vista) {
+  if (!subs.length) return 0;
+  const cache = CacheService.getScriptCache();
+  const msg = { t: String(titulo).slice(0, 80), b: String(texto).slice(0, 240), v: vista || 'inicio', id: id_() };
+  subs.forEach(s => {
+    const k = 'pn_' + norm_(s.ID);
+    let cola = []; try { cola = JSON.parse(cache.get(k) || '[]'); } catch (e) {}
+    cola.push(msg); cache.put(k, JSON.stringify(cola.slice(-8)), 21600);
+  });
+  const reqs = subs.map(s => {
+    const t = jwtVapid_(norm_(s.ENDPOINT));
+    return { url: norm_(s.ENDPOINT), method: 'post', muteHttpExceptions: true, contentType: 'application/octet-stream', payload: '',
+      headers: { TTL: '86400', Urgency: 'high', Authorization: 'vapid t=' + t.jwt + ', k=' + t.pub } };
+  });
+  const res = UrlFetchApp.fetchAll(reqs);
+  const muertas = [];
+  res.forEach((r, i) => { const c = r.getResponseCode(); if (c === 404 || c === 410) muertas.push(subs[i]._fila); });
+  if (muertas.length) conLock_(() => muertas.sort((a, b) => b - a).forEach(f => hoja_('PUSH').deleteRow(f)));
+  return res.length - muertas.length;
+}
+/** El celular, al recibir la notificación vacía, pide aquí el texto. */
+function pubPushPendiente(endpoint) {
+  const id = idSub_(norm_(endpoint)), cache = CacheService.getScriptCache(), k = 'pn_' + id;
+  let cola = []; try { cola = JSON.parse(cache.get(k) || '[]'); } catch (e) {}
+  if (!cola.length) return null;
+  const m = cola.shift();
+  if (cola.length) cache.put(k, JSON.stringify(cola), 21600); else cache.remove(k);
+  return m;
+}
+
+/** Ejecútala una vez desde el editor de Apps Script para autorizar el envío de notificaciones. */
+function autorizarNotificaciones() {
+  hojaNueva_('PUSH');
+  vapid_();
+  UrlFetchApp.fetch('https://www.google.com', { muteHttpExceptions: true });
+  Logger.log('Listo: notificaciones autorizadas.');
 }
 
 // ======================= APP INSTALABLE (GitHub Pages) =======================
