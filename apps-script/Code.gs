@@ -440,6 +440,7 @@ function apiInicio(token) {
     })(),
     prestamo: u.rol !== 'DUENO' && u.idTrabajador ? (function () { try { const t = prestamos_(hoy).find(x => x.id === u.idTrabajador); return t && (t.saldo > 0 || t.descontadoHoy) ? { saldo: t.saldo, descuento: t.descuento, descontadoHoy: t.descontadoHoy } : null; } catch (e) { return null; } })() : null,
     vendidoPor: (function () { try { return ventasPorVendedor_(hoy); } catch (e) { return []; } })(),
+    envases: u.rol === 'DUENO' ? (function () { try { return envases_(7); } catch (e) { return []; } })() : null,
     agenda: u.rol === 'DUENO' ? (function () { try { return agendaPendientes_().filter(a => a.faltan != null && a.faltan <= Math.max(a.avisar, 7)).slice(0, 4).map(limpia_); } catch (e) { return []; } })() : [],
   };
 }
@@ -1878,6 +1879,102 @@ function apiControl(token, desde, hasta) {
     ajustes: ajustes, cortes: cortes, tapas: tapas, garrafonesVendidos: garrafonesVendidos, cambios: cambios.slice(0, 40),
     pendientes: verificacionesPendientes_(), distancia: CONFIG.DISTANCIA_ALERTA_M,
   };
+}
+
+// ======================= GARRAFONES, HISTORIAL Y ZONAS (dueño) =======================
+/** Quién registró cada venta (por su id), según LOG_APP. */
+function vendedores_() {
+  const m = {};
+  leer_('LOG_APP').forEach(l => {
+    if (up_(l.ACCION) !== 'VENTA') return;
+    let d = {}; try { d = JSON.parse(norm_(l.DETALLE)); } catch (e) { return; }
+    const u = up_(l.USUARIO), h = d.hora || '';
+    (d.ids || [d.id]).forEach(i => { if (i) m[i] = { u: u, h: h }; });
+  });
+  return m;
+}
+
+/** Garrafones por día: los que salieron llenos, los vendidos en ruta, los vacíos y llenos que regresaron. */
+function envases_(dias) {
+  const hoy = hoyKey_(), desde = sumaDias_(hoy, -(dias - 1));
+  const en = k => k && k >= desde && k <= hoy;
+  const duenos = leer_('USUARIOS_APP').filter(x => up_(x.ROL) === 'DUENO').map(x => up_(x.NOMBRE));
+  const quien = vendedores_();
+  const D = {};
+  const d0 = k => D[k] || (D[k] = { dia: k, salieron: 0, vendidos: 0, vacios: 0, llenos: 0, rotos: 0, viajes: 0, sinRegreso: 0 });
+  for (let i = 0; i < dias; i++) d0(sumaDias_(desde, i));
+  const sal = leer_('SALIDA A RUTA').filter(s => en(diaKey_(s.FECHA)));
+  const reg = leer_('REGRESO A PLANTA').filter(r => en(diaKey_(r.FECHA)));
+  sal.forEach(s => { const d = d0(diaKey_(s.FECHA)); d.salieron += num_(s.GARRAFON); d.viajes++; if (!reg.some(r => norm_(r.ID_SALIDA) === norm_(s.ID_SALIDA))) d.sinRegreso++; });
+  reg.forEach(r => { const d = d0(diaKey_(r.FECHA)); d.vacios += num_(r['GARRAFONES VACIOS']); d.llenos += num_(r['GARRAFONES LLENOS REGRESO']); d.rotos += num_(r['GARRAFONES ROTOS']); });
+  leer_('VENTAS').forEach(v => {
+    const k = diaKey_(v.FECHA);
+    if (!en(k) || up_(v.PRODUCTO) !== 'GARRAFON' || norm_(v.ID_CLIENTE) === CONFIG.ID_CLIENTE_PLANTA) return;
+    const q = quien[norm_(v.ID_VENTA)];
+    if (q && duenos.indexOf(q.u) >= 0) return; // lo que entregas tú no sale en el motocarro
+    d0(k).vendidos += num_(v.CANTIDAD);
+  });
+  return Object.keys(D).sort().map(k => {
+    const d = D[k];
+    d.noRegresaron = d.viajes ? d.vendidos - d.vacios : 0;            // vacíos que debieron volver por cada lleno vendido
+    d.llenosFaltan = d.viajes ? d.salieron - d.llenos - d.rotos - d.vendidos : 0; // llenos que no se explican
+    return d;
+  });
+}
+function apiEnvases(token, dias) { sesion_(token, true); return envases_(Math.min(60, Math.max(1, Math.round(num_(dias) || 7)))); }
+
+/** Historial de ventas para revisar o corregir (solo dueño). */
+function apiVentasHistorial(token, desde, hasta) {
+  sesion_(token, true);
+  hasta = hasta || hoyKey_(); desde = desde || hasta;
+  const B = base_();
+  const quien = vendedores_();
+  return B.ventas.filter(v => { const k = diaKey_(v.FECHA); return k && k >= desde && k <= hasta; }).map(v => {
+    const g = B.grupoDe[norm_(v.ID_CLIENTE)], q = quien[norm_(v.ID_VENTA)] || {};
+    return { id: norm_(v.ID_VENTA), dia: diaKey_(v.FECHA), hora: q.h || '', quien: q.u || '', cliente: g ? g.base : norm_(v.ID_CLIENTE),
+      producto: up_(v.PRODUCTO), cantidad: num_(v.CANTIDAD), precio: num_(v['P.U.']), total: num_(v.TOTAL), metodo: up_(v.METODO) };
+  }).sort((a, b) => (a.dia + a.hora < b.dia + b.hora ? 1 : -1)).slice(0, 600);
+}
+
+/** Corrige cantidad, precio o forma de pago de una venta (solo dueño). Queda registrado el antes y el después. */
+function apiEditarVenta(token, id, cambios) {
+  const u = sesion_(token, true);
+  return conLock_(() => {
+    const v = leer_('VENTAS').find(x => norm_(x.ID_VENTA) === norm_(id));
+    if (!v) throw new Error('No encontré esa venta');
+    const cant = cambios.cantidad === undefined || cambios.cantidad === '' ? num_(v.CANTIDAD) : Math.round(num_(cambios.cantidad));
+    const pu = cambios.precio === undefined || cambios.precio === '' ? num_(v['P.U.']) : r2_(num_(cambios.precio));
+    const met = cambios.metodo ? up_(cambios.metodo) : up_(v.METODO);
+    if (!(cant > 0)) throw new Error('La cantidad debe ser mayor a 0. Para quitar la venta usa Borrar.');
+    if (pu < 0) throw new Error('El precio no puede ser negativo');
+    if (['EFECTIVO', 'TRANSFERENCIA', 'CREDITO'].indexOf(met) < 0) throw new Error('Forma de pago no válida');
+    const antes = { cantidad: num_(v.CANTIDAD), precio: num_(v['P.U.']), metodo: up_(v.METODO) };
+    actualizar_('VENTAS', v._fila, { 'CANTIDAD': cant, 'P.U.': pu, 'TOTAL': r2_(cant * pu), 'METODO': met });
+    log_(u.nombre, 'VENTA EDITADA', { id: id, cliente: norm_(v.ID_CLIENTE), antes: antes, ahora: { cantidad: cant, precio: pu, metodo: met } });
+    return { ok: true, total: r2_(cant * pu) };
+  });
+}
+
+/** Dónde se vende más: garrafones por ubicación de cliente en los últimos días (solo dueño). */
+function apiZonas(token, dias) {
+  sesion_(token, true);
+  dias = Math.min(180, Math.max(7, Math.round(num_(dias) || 60)));
+  const desde = sumaDias_(hoyKey_(), -(dias - 1));
+  const B = base_();
+  const por = {};
+  B.ventas.forEach(v => {
+    const k = diaKey_(v.FECHA); if (!k || k < desde) return;
+    const g = B.grupoDe[norm_(v.ID_CLIENTE)];
+    if (!g || esPaso_(g) || norm_(g.principal.ID_CLIENTE) === CONFIG.ID_CLIENTE_PLANTA) return;
+    const ub = ubic_(g.principal.UBICACION); if (!ub || km_(ub, CONFIG.PLANTA) > 25) return;
+    const x = por[g.base] || (por[g.base] = { nombre: g.base, lat: ub.lat, lon: ub.lon, garrafones: 0, total: 0 });
+    const p = up_(v.PRODUCTO);
+    x.garrafones += p === 'GARRAFON' ? num_(v.CANTIDAD) : p === 'GALON' ? num_(v.CANTIDAD) / 5 : 0;
+    x.total += num_(v.TOTAL);
+  });
+  const lista = Object.keys(por).map(k => por[k]).filter(x => x.total > 0).sort((a, b) => b.total - a.total);
+  lista.forEach(x => { x.garrafones = Math.round(x.garrafones); x.total = r2_(x.total); });
+  return { dias: dias, planta: CONFIG.PLANTA, clientes: lista };
 }
 
 // ======================= NOTIFICACIONES (app instalable) =======================

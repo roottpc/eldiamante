@@ -294,6 +294,69 @@ i.cq-l{background:var(--ok);opacity:.85;top:3px;bottom:3px}
 .sw input:disabled+i{opacity:.4}
 .sw input:focus-visible+i{outline:2px solid var(--agua);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){.notif-hero.on .notif-ico{animation:none}}
+
+/* ---- motocarro ---- */
+.mt-card{gap:14px}
+.mt-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mt{display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 6px;border-radius:16px;background:var(--soft);border:1px solid var(--line);--c:var(--agua)}
+.mt.v{--c:#00c8ff}.mt.s{--c:#7d91a4}.mt.r{--c:#3dffa8}
+.mt-i svg{width:22px;height:30px;color:var(--c);filter:drop-shadow(0 0 6px color-mix(in srgb,var(--c) 60%,transparent))}
+.mt b{font:800 30px/1.1 var(--display);letter-spacing:-.03em;color:var(--ink)}
+.mt small{font-size:12px;color:var(--muted);text-align:center;line-height:1.25}
+.mt-v{border-radius:14px;padding:11px 14px;font-size:14px;font-weight:600}
+.mt-v.ok{background:var(--ok-soft);color:var(--ok)}.mt-v.bad{background:var(--bad-soft);color:var(--bad)}.mt-v.warn{background:var(--warn-soft);color:var(--warn)}.mt-v.neutro{background:var(--soft);color:var(--muted)}
+.mt-v b{font-size:17px}
+.sm-h{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);margin-bottom:8px;gap:8px;flex-wrap:wrap}
+.sm-l{display:flex;align-items:center;gap:5px}.sm-l i{width:10px;height:10px;border-radius:3px;display:inline-block;margin-left:6px}
+.sm-l i.v,.sm-b i.v{background:#00c8ff}.sm-l i.r,.sm-b i.r{background:#3dffa8}
+.sm-g{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;align-items:end}
+.sm-d{display:flex;flex-direction:column;align-items:center;gap:3px}
+.sm-b{height:64px;width:100%;display:flex;align-items:flex-end;justify-content:center;gap:3px}
+.sm-b i{width:38%;border-radius:4px 4px 2px 2px;min-height:2px}
+.sm-b i.v{box-shadow:0 0 8px rgba(0,200,255,.5)}
+.sm-d em{font:700 11px var(--mono);font-style:normal;color:var(--bad);height:14px}.sm-d em.q{color:var(--warn)}
+.sm-d span{font-size:11px;color:var(--muted)}
+.sm-d.mal .sm-b{background:linear-gradient(0deg,rgba(255,84,114,.14),transparent);border-radius:6px}
+/* ---- historial ---- */
+.hv-ley{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted)}.hv-ley span{display:flex;align-items:center;gap:5px}.hv-ley i{width:10px;height:10px;border-radius:50%}
+.hv-dia{display:flex;flex-direction:column;gap:6px}
+.hv-h{display:flex;justify-content:space-between;align-items:baseline;padding:6px 2px 2px}.hv-h h3::first-letter{text-transform:uppercase}.hv-h span{font:700 15px var(--mono)}
+.hv{border-radius:16px;background:var(--panel);border:1px solid var(--line)}
+.hv.ab{border-color:var(--agua);box-shadow:0 0 16px rgba(0,200,255,.18)}
+.hv-r{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;background:none;border:0;text-align:left;color:var(--ink)}
+.hv-q{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font:800 14px var(--display);color:#04070b;background:var(--c);box-shadow:0 0 10px color-mix(in srgb,var(--c) 55%,transparent);flex:none}
+.hv-t{flex:1;min-width:0}.hv-t b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hv-t small{display:block;color:var(--muted);font-size:12.5px}
+.hv-m{font:700 15px var(--mono);white-space:nowrap}.hv-m.f{color:var(--warn)}
+.hv-e{display:flex;flex-direction:column;gap:10px;padding:0 14px 14px}
+.hv-del.confirma{color:var(--bad);border-color:var(--bad)}
+/* ---- panel ---- */
+.ph{gap:4px}.ph-t{display:flex;justify-content:space-between;align-items:flex-start}
+.ph-n{display:block;font:800 40px/1.1 var(--display);letter-spacing:-.04em;text-shadow:0 0 22px rgba(0,200,255,.35)}
+.area{width:100%;height:auto;display:block;margin-top:6px}
+.area .a-max{font:700 13px var(--mono);fill:var(--ink)}.area .a-d{font:11px var(--mono);fill:var(--muted)}
+.dona{display:grid;grid-template-columns:140px 1fr;gap:14px;align-items:center}
+.dona svg{width:140px;height:140px}.dona circle{transition:stroke-dasharray .6s}
+.dona .d-n{font:800 17px var(--display);fill:var(--ink)}.dona .d-s{font:12px var(--display);fill:var(--muted)}
+.dona ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;font-size:13.5px}
+.dona li{display:flex;align-items:center;gap:8px}.dona li span{flex:1}.dona li i,.ba-l i{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
+.dona li b{font-family:var(--mono)}
+.ba{display:flex;height:22px;border-radius:12px;overflow:hidden;gap:2px;background:var(--soft)}
+.ba i{display:block;height:100%}
+.ba-l{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted)}.ba-l span{display:flex;align-items:center;gap:6px}.ba-l b{color:var(--ink);font-family:var(--mono)}
+.pg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.pg>div{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;background:var(--soft);border-radius:14px;padding:10px 12px;min-width:0}
+.pg svg{width:18px;height:24px;color:var(--agua)}.pg .gl svg{color:#ffb800;transform:scale(.8)}
+.pg b{font:800 20px var(--display)}.pg small{color:var(--muted)}
+.deb{font:800 22px var(--display)!important;color:var(--warn)}
+.bn{display:grid;grid-template-columns:minmax(80px,40%) 1fr;gap:10px;align-items:center;font-size:13.5px}
+.bn span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bn div{height:12px;border-radius:8px;background:var(--soft);overflow:hidden}.bn i{display:block;height:100%;border-radius:8px;opacity:.9}
+.ojo{display:flex;flex-wrap:wrap;gap:6px}.ojo span{font-size:13px;padding:6px 11px;border-radius:99px;background:var(--soft);border:1px solid var(--line)}
+.bn.cm{grid-template-columns:minmax(80px,36%) 1fr auto}.bn b{font:700 12.5px var(--mono);color:var(--muted)}
+/* ---- zonas ---- */
+.calor{mix-blend-mode:screen}
+.zl{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}.zl i{flex:1;height:8px;border-radius:8px;background:linear-gradient(90deg,#00c8ff,#ffb800,#ff3d6e)}
+@media (max-width:420px){.dona{grid-template-columns:110px 1fr}.dona svg{width:110px;height:110px}}
 </style>
 </head>
 <body>
@@ -619,6 +682,7 @@ VISTAS.inicio = () => {
   const d = S.data, r = d.resumenHoy;
   const deben = d.clientes.filter(c => c.saldo > 0.5).sort((a, b) => b.saldo - a.saldo).slice(0, 3);
   return marco('Hola, ' + nice(d.user.nombre), fechaLarga(d.hoy), `
+    ${esDueno() ? envasesHTML(d.envases) : ''}
     ${vendidoPorHTML(d.vendidoPor)}
     <div class="kp"><div><span>Vendido hoy</span><b>${money(r.ventas)}</b></div><div><span>Garrafones hoy</span><b>${r.garrafones}</b></div>
     <div><span>Cobrado de fiado</span><b>${money(r.cobrado)}</b></div><div><span>Pedidos pendientes</span><b>${d.pedidos.length}</b></div></div>
@@ -637,6 +701,7 @@ VISTAS.inicio = () => {
       <button class="big alt" data-go="corte">${ICON.corte}Corte del día</button>
       <button class="big alt" data-go="calidad">${ICON.calidad}Calidad del agua</button>
       ${esDueno() ? `<button class="big" data-go="control" style="grid-column:1/-1;flex-direction:row;align-items:center;min-height:0">${ICON.escudo}Control antirrobo${d.porConfirmar ? ` <span class="pill p-bad">${d.porConfirmar} por confirmar</span>` : ''}</button>` : ''}
+      ${esDueno() ? `<button class="big alt" data-go="historial">${ICON.pedidos}Historial de ventas</button>` : ''}
       ${esDueno() ? `<button class="big alt" data-go="agenda">${ICON.agenda}Agenda</button><button class="big alt" data-go="separador">${ICON.sobres}Separador del día</button><button class="big alt" data-go="prestamos" style="grid-column:1/-1;flex-direction:row;align-items:center;min-height:0">${ICON.prestamo}Préstamos a trabajadores</button>` : ''}
       <button class="big alt" data-go="avisos" style="grid-column:1/-1;flex-direction:row;align-items:center;min-height:0">${ICON_CAMPANA}Avisos del equipo${AV.noLeidos ? ` <span class="pill p-bad">${AV.noLeidos}</span>` : ''}</button>
     </div>
@@ -1049,30 +1114,6 @@ function graficaDias(r) {
   return `<div class="card chart"><h3>Ventas por día</h3><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Ventas por día">${s}</svg></div>`;
 }
 
-function panelResumen(r) {
-  const h = r.hoy;
-  return `<div class="pgrid">
-    <div class="card"><span class="muted">Ventas</span><b style="font:800 26px var(--display);letter-spacing:-.02em">${money(r.ventas)}</b>${delta(r.ventas, r.ventasAnterior)}</div>
-    <div class="card"><span class="muted">Dinero que entró</span><b style="font:800 26px var(--display);letter-spacing:-.02em">${money(r.cobradoReal)}</b><small class="muted">Efectivo ${money(r.efectivo)} · Transf. ${money(r.transferencia)} · Cobros ${money(r.abonos)}</small></div>
-    <div class="card"><span class="muted">Gastos y compras</span><b style="font:800 26px var(--display);letter-spacing:-.02em">${money(r.gastos + r.compras)}</b><small class="muted">Comisiones aparte: ${money(r.comisiones)}</small></div>
-    <div class="card"><span class="muted">Utilidad estimada</span><b style="font:800 26px var(--display);letter-spacing:-.02em;color:var(--${r.utilidad >= 0 ? 'ok' : 'bad'})">${money(r.utilidad)}</b><small class="muted">Ventas − comisiones − gastos − compras</small></div>
-    <div class="card"><span class="muted">Garrafones</span><b style="font:800 26px var(--display);letter-spacing:-.02em">${r.garrafones}</b>${delta(r.garrafones, r.garrafonesAnterior)}<small class="muted">Precio promedio ${money(r.precioPromedio)} · ${r.galones} galones</small></div>
-    <div class="card"><span class="muted">Te deben</span><b style="font:800 26px var(--display);letter-spacing:-.02em">${money(r.porCobrar)}</b><small class="muted">Fiado en el periodo: ${money(r.credito)}</small></div>
-    <div class="card"><span class="muted">Diferencias de corte</span><b style="font:800 26px var(--display);letter-spacing:-.02em;color:var(--${Math.abs(r.diferenciasCorte) < 1 ? 'ok' : 'bad'})">${money(r.diferenciasCorte)}</b><small class="muted">${r.cortes.length} cortes cerrados</small></div>
-    <div class="card"><span class="muted">Mostrador (planta)</span><b style="font:800 26px var(--display);letter-spacing:-.02em">${money(r.ventasPlanta)}</b><small class="muted">${r.pedidos.length} pedidos pendientes</small></div>
-  </div>
-  ${graficaDias(r)}
-  <div class="card"><h3>Hoy en vivo</h3><div class="pgrid" style="gap:6px">
-    <div><span class="muted">Efectivo esperado</span><br><b>${money(h.esperado)}</b></div><div><span class="muted">Garrafones ruta / planta</span><br><b>${h.garrafonesRuta} / ${h.garrafonesPlanta}</b></div>
-    <div><span class="muted">Salieron / regresaron llenos</span><br><b>${h.salieron} / ${h.regresaronLlenos}</b></div><div><span class="muted">Rotos</span><br><b>${h.rotos}</b></div></div></div>
-  <div class="cols">
-    <div class="card"><h3>Mejores clientes</h3>${r.topClientes.map(c => hbar(nice(c.nombre), c.total, r.topClientes[0].total)).join('') || '<p class="muted">Sin ventas.</p>'}</div>
-    <div class="card"><h3>Compraron mucho menos que el periodo anterior</h3>${r.bajaron.map(c => `<div class="tot"><span>${esc(nice(c.nombre))}</span><span class="muted">${money(c.anterior)} → <b style="color:var(--bad)">${money(c.total)}</b></span></div>`).join('') || '<p class="muted">Nadie bajó de forma importante.</p>'}</div>
-    <div class="card"><h3>Gastos por categoría</h3>${r.gastosPorCategoria.slice(0, 8).map(g => hbar(nice(g.categoria), g.total, r.gastosPorCategoria[0].total)).join('') || '<p class="muted">Sin gastos capturados.</p>'}</div>
-    <div class="card"><h3>Más de 3 semanas sin comprar</h3>${r.perdidos.slice(0, 12).map(c => `<div class="tot"><span>${esc(nice(c.nombre))}</span><span class="muted">${c.diasDesde} días</span></div>`).join('') || '<p class="muted">Todos compran seguido.</p>'}</div>
-  </div>`;
-}
-
 function panelRecorrido(r) {
   const R = r.recorrido || [];
   const pts = R.filter(x => x.lat != null);
@@ -1139,7 +1180,8 @@ function panelReporte(r) {
 function miniMapa(grupos, planta, opts) {
   opts = opts || {};
   const W = 640, H = 320, pad = 26;
-  const pts = [planta].concat(...grupos.map(g => g.puntos)).filter(p => p && isFinite(p.lat) && isFinite(p.lon));
+  const calor = (opts.calor || []).filter(p => p && isFinite(p.lat) && isFinite(p.lon));
+  const pts = [planta].concat(...grupos.map(g => g.puntos), calor).filter(p => p && isFinite(p.lat) && isFinite(p.lon));
   if (pts.length < 2) return `<div class="mapa" style="display:grid;place-items:center"><small class="muted">${opts.vacio || 'Sin puntos para mostrar'}</small></div>`;
   const wx = (lon, z) => (lon + 180) / 360 * 256 * Math.pow(2, z);
   const wy = (lat, z) => { const s = Math.sin(lat * Math.PI / 180); return (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * 256 * Math.pow(2, z); };
@@ -1156,6 +1198,11 @@ function miniMapa(grupos, planta, opts) {
     tiles += `<img alt="" loading="lazy" onerror="this.style.visibility='hidden'" src="https:\/\/tile.openstreetmap.org/${z}/${tx}/${ty}.png" style="left:${((tx * 256 - x0) / W * 100).toFixed(3)}%;top:${((ty * 256 - y0) / H * 100).toFixed(3)}%;width:${(256 / W * 100).toFixed(3)}%;height:${(256 / H * 100).toFixed(3)}%">`;
   }
   let svg = '';
+  if (calor.length) {
+    const col = w => w > .6 ? 'cr' : w > .3 ? 'ca' : 'cb';
+    svg += `<defs>${[['cr', '#ff3d6e'], ['ca', '#ffb800'], ['cb', '#00c8ff']].map(([k, c]) => `<radialGradient id="${k}"><stop offset="0" stop-color="${c}" stop-opacity=".85"/><stop offset=".45" stop-color="${c}" stop-opacity=".35"/><stop offset="1" stop-color="${c}" stop-opacity="0"/></radialGradient>`).join('')}</defs><g class="calor">`
+      + calor.slice().sort((a, b) => a.peso - b.peso).map(p => `<circle cx="${X(p)}" cy="${Y(p)}" r="${(16 + 46 * p.peso).toFixed(1)}" fill="url(#${col(p.peso)})"/>`).join('') + '</g>';
+  }
   grupos.forEach(g => {
     const ruta = g.cerrar ? [planta].concat(g.puntos, [planta]) : g.desdePlanta ? [planta].concat(g.puntos) : g.puntos;
     if (ruta.length > 1) svg += `<polyline points="${ruta.map(p => X(p) + ',' + Y(p)).join(' ')}" fill="none" stroke="${g.color}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity=".85" ${g.punteado ? 'stroke-dasharray="6 6"' : ''}/>`;
@@ -1169,9 +1216,15 @@ function miniMapa(grupos, planta, opts) {
   return `<div class="mapa" role="img" aria-label="${esc(opts.alt || 'Mapa de la ruta')}"><div class="tiles">${tiles}</div><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${svg}</svg>${ley ? `<div class="ley">${ley}</div>` : ''}<span class="attr">© OpenStreetMap</span></div>`;
 }
 const COLORES_VIAJE = ['#00c8ff', '#ff4fd8', '#7cff6b', '#ffb800'];
-function mapaViajes(R) {
+function mapaViajes(R, soloPendientes, verComprados) {
   const P = R.planta || (S.ruta && S.ruta.planta);
-  return miniMapa(R.viajes.map((t, k) => ({ nombre: 'Viaje ' + (k + 1), color: COLORES_VIAJE[k % 4], cerrar: true, puntos: t.paradas.map(p => ({ lat: p.lat, lon: p.lon, tenue: p.visitado })) })), P, { vacio: 'No hay paradas con ubicación', alt: 'Mapa de los viajes' });
+  const grupos = R.viajes.map((t, k) => ({ nombre: 'Viaje ' + (k + 1), color: COLORES_VIAJE[k % 4], cerrar: true,
+    puntos: t.paradas.map((p, i) => ({ lat: p.lat, lon: p.lon, tenue: p.visitado, etiqueta: i + 1, visto: p.visitado })).filter(p => !soloPendientes || !p.visto) }));
+  if (soloPendientes && verComprados) {
+    const ya = [].concat(...R.viajes.map(t => t.paradas.filter(p => p.visitado)));
+    if (ya.length) grupos.push({ nombre: 'Ya compraron', color: '#3dffa8', puntos: ya.map(p => ({ lat: p.lat, lon: p.lon, etiqueta: '✓' })) });
+  }
+  return miniMapa(grupos, P, { vacio: soloPendientes ? 'Ya se visitaron todas las paradas con ubicación' : 'No hay paradas con ubicación', alt: 'Mapa de los viajes' });
 }
 async function cargarMapa(cual) {
   const M = S.mapa;
@@ -1185,7 +1238,23 @@ function mapaRutaHTML(R) {
   S.mapa = S.mapa || { tab: 'hoy' };
   const M = S.mapa, P = R.planta;
   let cuerpo = '';
-  if (M.tab === 'hoy') cuerpo = mapaViajes(R) + `<small class="muted">Lo que falta por visitar hoy. Los círculos tenues ya compraron.</small>`;
+  if (M.tab === 'hoy') {
+    const ya = [].concat(...R.viajes.map(t => t.paradas.filter(p => p.visitado))).length;
+    const faltan = [].concat(...R.viajes.map(t => t.paradas.filter(p => !p.visitado))).length;
+    cuerpo = mapaViajes(R, true, M.verComprados) + `<div class="tot" style="align-items:center"><small class="muted">${faltan ? 'Faltan ' + faltan + ' por visitar. Los que ya compraron desaparecen del mapa.' : 'Ya se visitaron todas las paradas.'}</small>
+      ${ya ? `<button class="chip" data-vercomp aria-pressed="${!!M.verComprados}">${M.verComprados ? 'Ocultar' : 'Ver'} los ${ya} que compraron</button>` : ''}</div>`;
+  }
+  if (M.tab === 'zonas') {
+    M.zDias = M.zDias || 60;
+    if (!M.zonas) { setTimeout(async () => { try { M.zonas = await call('apiZonas', S.token, M.zDias); } catch (e) { M.error = e.message; } if (S.vista === 'ruta') render(); }, 0); cuerpo = '<div class="mapa" style="display:grid;place-items:center"><small class="muted">Buscando dónde vendes más…</small></div>'; }
+    else {
+      const Z = M.zonas, max = Math.max(1, ...Z.clientes.map(c => c.total));
+      cuerpo = `<div class="chips" style="margin:0">${[[30, '30 días'], [60, '60 días'], [120, '4 meses']].map(([k, t]) => `<button class="chip" data-zdias="${k}" aria-pressed="${M.zDias === k}">${t}</button>`).join('')}</div>`
+        + miniMapa([], Z.planta, { calor: Z.clientes.map(c => ({ lat: c.lat, lon: c.lon, peso: Math.sqrt(c.total / max) })), vacio: 'Sin ventas con ubicación', alt: 'Zonas donde más vendes' })
+        + `<div class="zl"><span>Poca venta</span><i></i><span>Mucha venta</span></div>`
+        + `<div class="ojo">${Z.clientes.slice(0, 6).map(c => `<span>${esc(nice(c.nombre))}</span>`).join('')}</div><small class="muted">Donde más vendes en los últimos ${Z.dias} días, según la ubicación de cada cliente.</small>`;
+    }
+  }
   if (M.tab === 'vendido') {
     if (!M.vendido) { setTimeout(() => cargarMapa('vendido'), 0); cuerpo = '<div class="mapa" style="display:grid;place-items:center"><small class="muted">Cargando…</small></div>'; }
     else {
@@ -1203,7 +1272,7 @@ function mapaRutaHTML(R) {
         + (T.sinUbicacion.length ? `<div style="font-size:12.5px" class="muted">Sin ubicación: ${T.sinUbicacion.map(p => esc(nice(p.nombre))).join(', ')}</div>` : '');
     }
   }
-  return `<div class="card" style="gap:8px"><div class="chips" style="margin:0">${[['hoy', 'Por visitar'], ['vendido', 'Vendido hoy'], ['manana', 'Mañana']].map(([k, t]) => `<button class="chip" data-mapa="${k}" aria-pressed="${M.tab === k}">${t}</button>`).join('')}</div>${cuerpo}</div>`;
+  return `<div class="card" style="gap:8px"><div class="chips" style="margin:0">${[['hoy', 'Por visitar'], ['vendido', 'Vendido hoy'], ['manana', 'Mañana']].concat(esDueno() ? [['zonas', 'Zonas de venta']] : []).map(([k, t]) => `<button class="chip" data-mapa="${k}" aria-pressed="${M.tab === k}">${t}</button>`).join('')}</div>${cuerpo}</div>`;
 }
 
 
@@ -1502,6 +1571,136 @@ VISTAS.notif.despues = () => {
 };
 if (PUSH.soporta) navigator.serviceWorker.addEventListener('message', e => { const v = e.data && e.data.vista; if (v && S.token && VISTAS[v]) { if (v === 'pedidos' || v === 'inicio') cargar(true).then(() => raiz(v)); else raiz(v); } });
 
+/* ============ garrafones del motocarro (Inicio, solo dueño) ============ */
+const ICON_GARR = '<svg viewBox="0 0 24 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M9 2h6v3H9z"/><path d="M8 5h8l1 3H7z"/><rect x="4" y="8" width="16" height="22" rx="4"/><path d="M4 16h16M4 23h16" opacity=".45"/></svg>';
+function envasesHTML(E) {
+  if (!E || !E.length) return '';
+  const h = E[E.length - 1];
+  const fila = (cls, n, t) => `<div class="mt ${cls}"><span class="mt-i">${ICON_GARR}</span><b>${n}</b><small>${t}</small></div>`;
+  let ver;
+  if (!h.viajes) ver = '<div class="mt-v neutro">Todavía no sale el motocarro hoy.</div>';
+  else if (h.sinRegreso) ver = `<div class="mt-v warn">Falta registrar el regreso de ${h.sinRegreso === 1 ? 'un viaje' : h.sinRegreso + ' viajes'}. Al registrarlo se cuentan los vacíos.</div>`;
+  else if (h.noRegresaron > 2) ver = `<div class="mt-v bad">Faltan <b>${h.noRegresaron}</b> vacíos: se vendieron ${h.vendidos} y regresaron ${h.vacios}.</div>`;
+  else if (h.llenosFaltan > 2) ver = `<div class="mt-v bad">Faltan <b>${h.llenosFaltan}</b> llenos que no se vendieron ni regresaron.</div>`;
+  else ver = '<div class="mt-v ok">Cuadra: regresaron los vacíos de lo vendido.</div>';
+  const max = Math.max(1, ...E.map(d => Math.max(d.vendidos, d.vacios)));
+  const dias = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+  const barras = E.map(d => {
+    const [y, m, dd] = d.dia.split('-').map(Number), dw = dias[new Date(y, m - 1, dd).getDay()];
+    const falta = d.viajes && !d.sinRegreso && d.noRegresaron > 2;
+    return `<div class="sm-d ${falta ? 'mal' : ''}" title="${fmtDia(d.dia)}: vendidos ${d.vendidos}, vacíos ${d.vacios}">
+      <div class="sm-b"><i class="v" style="height:${d.vendidos / max * 100}%"></i><i class="r" style="height:${d.vacios / max * 100}%"></i></div>
+      ${falta ? `<em>−${d.noRegresaron}</em>` : d.viajes && d.sinRegreso ? '<em class="q">?</em>' : '<em></em>'}<span>${dw}</span></div>`;
+  }).join('');
+  return `<section class="card mt-card"><h3>El motocarro hoy</h3>
+    <div class="mt-row">${fila('s', h.salieron, 'salieron llenos')}${fila('v', h.vendidos, 'vendidos en ruta')}${fila('r', h.vacios, 'vacíos regresaron')}</div>
+    ${ver}
+    <div class="sm"><div class="sm-h"><span>Últimos 7 días</span><span class="sm-l"><i class="v"></i>vendidos <i class="r"></i>vacíos de vuelta</span></div><div class="sm-g">${barras}</div></div>
+  </section>`;
+}
+
+/* ============ historial de ventas (solo dueño) ============ */
+const nomProd = (p, n) => ({ GARRAFON: ['garrafón', 'garrafones'], GALON: ['galón', 'galones'], 'BOTELLA 1 LT': ['botella de 1 L', 'botellas de 1 L'], 'BOTELLA 1/2 LT': ['botella de 1/2 L', 'botellas de 1/2 L'], HIELO: ['hielo', 'hielos'], GALONCAMB: ['cambio de galón', 'cambios de galón'] }[p] || [nice(p).toLowerCase(), nice(p).toLowerCase()])[n === 1 ? 0 : 1];
+const dineroCorto = n => Math.abs(n) >= 10000 ? '$' + (n / 1000).toLocaleString('es-MX', { maximumFractionDigits: 1 }) + ' mil' : money(Math.round(n));
+const COLOR_QUIEN = q => ({ GAEL: '#00c8ff', JESSICA: '#ff4fd8', BLANCA: '#ffb800', OSCAR: '#7cff6b' })[q] || '#7d91a4';
+function rangoHist() {
+  const H = S.hist, hoy = S.data.hoy;
+  const menos = n => { const [y, m, d] = hoy.split('-').map(Number); const x = new Date(y, m - 1, d - n); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
+  if (H.per === 'ayer') return [menos(1), menos(1)];
+  if (H.per === 'semana') return [menos(6), hoy];
+  if (H.per === 'dia') return [H.dia || hoy, H.dia || hoy];
+  return [hoy, hoy];
+}
+VISTAS.historial = () => {
+  if (!esDueno()) return marco('Historial', '', '<div class="badbox">Solo el dueño puede ver esto.</div>', true);
+  S.hist = S.hist || { per: 'hoy', data: null, q: '', abierta: null };
+  const H = S.hist;
+  const chips = `<div class="chips">${[['hoy', 'Hoy'], ['ayer', 'Ayer'], ['semana', '7 días'], ['dia', 'Otro día']].map(([k, t]) => `<button class="chip" data-hper="${k}" aria-pressed="${H.per === k}">${t}</button>`).join('')}</div>
+    ${H.per === 'dia' ? `<input class="inp" type="date" id="hDia" value="${H.dia || S.data.hoy}" max="${S.data.hoy}" aria-label="Día">` : ''}`;
+  if (!H.data) {
+    const [de, a] = rangoHist();
+    setTimeout(async () => { try { H.data = await run('apiVentasHistorial', [S.token, de, a], 'Buscando ventas…'); render(); } catch (e) {} }, 0);
+    return marco('Historial de ventas', 'Solo tú lo ves', chips + '<p class="muted">Cargando…</p>', true);
+  }
+  const q = H.q.toLowerCase();
+  const lista = H.data.filter(v => !q || v.cliente.toLowerCase().indexOf(q) >= 0 || v.quien.toLowerCase().indexOf(q) >= 0);
+  const dias = {}; lista.forEach(v => (dias[v.dia] || (dias[v.dia] = [])).push(v));
+  const fila = v => {
+    const ab = H.abierta === v.id;
+    return `<div class="hv ${ab ? 'ab' : ''}"><button class="hv-r" data-hv="${v.id}" aria-expanded="${ab}">
+      <span class="hv-q" style="--c:${COLOR_QUIEN(v.quien)}" title="${esc(nice(v.quien || 'sin dato'))}">${esc((v.quien || '?').charAt(0))}</span>
+      <span class="hv-t"><b>${esc(nice(v.cliente))}</b><small>${v.cantidad} ${esc(nomProd(v.producto, v.cantidad))} · ${({ EFECTIVO: 'efectivo', TRANSFERENCIA: 'transferencia', CREDITO: 'fiado' })[v.metodo] || v.metodo.toLowerCase()}${v.hora ? ' · ' + esc(v.hora) : ''}</small></span>
+      <b class="hv-m ${v.metodo === 'CREDITO' ? 'f' : ''}">${money(v.total)}</b></button>
+      ${ab ? `<div class="hv-e">
+        <div class="grid2"><label class="f">Cantidad<input class="inp" id="eCant" inputmode="numeric" value="${v.cantidad}"></label><label class="f">Precio c/u<input class="inp" id="ePre" inputmode="decimal" value="${v.precio}"></label></div>
+        <div class="seg">${[['EFECTIVO', 'Efectivo'], ['TRANSFERENCIA', 'Transferencia'], ['CREDITO', 'Fiado']].map(([k, t]) => `<button data-emet="${k}" aria-pressed="${(H.met || v.metodo) === k}">${t}</button>`).join('')}</div>
+        <div class="btnrow"><button class="btn small" data-act="hvGuardar" data-id="${v.id}">Guardar cambios</button><button class="btn sec small hv-del" data-act="hvBorrar" data-id="${v.id}">Borrar venta</button></div>
+        <small class="muted">Registró ${esc(nice(v.quien || 'sin dato'))}. Cada cambio queda anotado en Actividad.</small></div>` : ''}</div>`;
+  };
+  const cuerpo = Object.keys(dias).sort().reverse().map(k => {
+    const t = dias[k].reduce((s, v) => s + v.total, 0), g = dias[k].filter(v => v.producto === 'GARRAFON').reduce((s, v) => s + v.cantidad, 0);
+    return `<section class="hv-dia"><div class="hv-h"><h3>${fechaLarga(k)}</h3><span>${money(t)} <small class="muted">· ${g} garrafones</small></span></div>${dias[k].map(fila).join('')}</section>`;
+  }).join('') || '<div class="card"><p class="muted" style="margin:0">No hay ventas en este periodo.</p></div>';
+  return marco('Historial de ventas', 'Toca una venta para corregirla', `${chips}
+    <input class="inp" id="hBus" placeholder="Buscar cliente o vendedor" value="${esc(H.q)}" aria-label="Buscar">
+    <div class="hv-ley">${['GAEL', 'JESSICA', 'BLANCA', 'OSCAR'].map(n => `<span><i style="background:${COLOR_QUIEN(n)}"></i>${nice(n)}</span>`).join('')}</div>${cuerpo}`, true);
+};
+VISTAS.historial.despues = () => {
+  const b = $('#hBus'); if (b) b.oninput = () => { S.hist.q = b.value; const pos = b.selectionStart; render(); const nb = $('#hBus'); nb.focus(); nb.setSelectionRange(pos, pos); };
+  const d = $('#hDia'); if (d) d.onchange = () => { S.hist.dia = d.value; S.hist.data = null; render(); };
+};
+
+/* ============ panel gráfico ============ */
+function areaDias(d) {
+  if (!d.length) return '';
+  const W = 600, H = 150, pt = 14, pb = 20, max = Math.max(1, ...d.map(x => x.ventas));
+  const x = i => d.length === 1 ? W / 2 : 6 + i * (W - 12) / (d.length - 1), y = v => pt + (H - pt - pb) * (1 - v / max);
+  const pts = d.map((p, i) => [x(i), y(p.ventas)]);
+  let ln = 'M' + pts[0].join(',');
+  for (let i = 1; i < pts.length; i++) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], cx = (x0 + x1) / 2; ln += ` C${cx},${y0} ${cx},${y1} ${x1},${y1}`; }
+  const area = ln + ` L${pts[pts.length - 1][0]},${H - pb} L${pts[0][0]},${H - pb} Z`;
+  const im = d.reduce((m, p, i) => p.ventas > d[m].ventas ? i : m, 0);
+  return `<svg class="area" viewBox="0 0 ${W} ${H}" role="img" aria-label="Ventas por día"><defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#00c8ff" stop-opacity=".45"/><stop offset="1" stop-color="#00c8ff" stop-opacity="0"/></linearGradient></defs>
+    <path d="${area}" fill="url(#ga)"/><path d="${ln}" fill="none" stroke="#00c8ff" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="${pts[im][0]}" cy="${pts[im][1]}" r="5" fill="#04070b" stroke="#00c8ff" stroke-width="3"/>
+    <text x="${Math.min(W - 60, Math.max(60, pts[im][0]))}" y="${Math.max(12, pts[im][1] - 10)}" text-anchor="middle" class="a-max">${money(d[im].ventas)}</text>
+    <text x="6" y="${H - 4}" class="a-d">${fmtDia(d[0].dia)}</text><text x="${W - 6}" y="${H - 4}" text-anchor="end" class="a-d">${fmtDia(d[d.length - 1].dia)}</text></svg>`;
+}
+function dona(partes, centro, sub) {
+  const tot = partes.reduce((s, p) => s + Math.max(0, p.v), 0) || 1, R = 52, C = 2 * Math.PI * R;
+  let off = 0;
+  const arcos = partes.filter(p => p.v > 0).map(p => { const l = p.v / tot * C; const s = `<circle r="${R}" cx="70" cy="70" fill="none" stroke="${p.c}" stroke-width="18" stroke-dasharray="${l} ${C - l}" stroke-dashoffset="${-off}" transform="rotate(-90 70 70)"/>`; off += l; return s; }).join('');
+  return `<div class="dona"><svg viewBox="0 0 140 140" role="img" aria-label="${esc(sub)}"><circle r="${R}" cx="70" cy="70" fill="none" stroke="var(--soft)" stroke-width="18"/>${arcos}<text x="70" y="68" text-anchor="middle" class="d-n">${centro}</text><text x="70" y="86" text-anchor="middle" class="d-s">${esc(sub)}</text></svg>
+    <ul>${partes.map(p => `<li><i style="background:${p.c}"></i><span>${p.t}</span><b>${Math.round(Math.max(0, p.v) / tot * 100)}%</b></li>`).join('')}</ul></div>`;
+}
+function barraApilada(partes) {
+  const tot = partes.reduce((s, p) => s + p.v, 0) || 1;
+  return `<div class="ba">${partes.filter(p => p.v > 0).map(p => `<i style="width:${p.v / tot * 100}%;background:${p.c}" title="${p.t}: ${money(p.v)}"></i>`).join('')}</div>
+    <div class="ba-l">${partes.map(p => `<span><i style="background:${p.c}"></i>${p.t} <b>${Math.round(p.v / tot * 100)}%</b></span>`).join('')}</div>`;
+}
+function barrasNombre(lista, max, color, conMonto) {
+  return lista.map(x => `<div class="bn ${conMonto ? 'cm' : ''}"><span>${esc(nice(x.n))}</span><div><i style="width:${Math.max(4, x.v / max * 100)}%;background:${color}"></i></div>${conMonto ? `<b>${dineroCorto(x.v)}</b>` : ''}</div>`).join('');
+}
+function panelResumen(r) {
+  const p = pct(r.ventas, r.ventasAnterior);
+  const egresos = r.gastos + r.compras;
+  const util = r.utilidad;
+  const deb = (r.deudores || []).slice(0, 5);
+  const top = (r.topClientes || []).slice(0, 6);
+  const gas = (r.gastosPorCategoria || []).slice(0, 6);
+  const ojo = (r.bajaron || []).slice(0, 6).map(c => c.nombre).concat((r.perdidos || []).slice(0, 6).map(c => c.nombre)).slice(0, 10);
+  return `<section class="card ph"><div class="ph-t"><div><small class="muted">Vendiste</small><b class="ph-n">${money(Math.round(r.ventas))}</b></div>${p == null ? '' : `<span class="pill ${p >= 0 ? 'p-ok' : 'p-bad'}">${p >= 0 ? '▲' : '▼'} ${Math.abs(p)}%</span>`}</div>${areaDias(r.porDia || [])}</section>
+    <div class="cols">
+      <section class="card"><h3>Qué quedó de lo vendido</h3>${dona([{ t: 'Te quedó', v: util, c: util >= 0 ? '#3dffa8' : '#ff5472' }, { t: 'Gastos y compras', v: egresos, c: '#ffb800' }, { t: 'Comisiones', v: r.comisiones, c: '#ff4fd8' }], dineroCorto(util), util >= 0 ? 'te quedó' : 'pérdida')}</section>
+      <section class="card"><h3>Cómo te pagaron</h3>${barraApilada([{ t: 'Efectivo', v: r.efectivo, c: '#00c8ff' }, { t: 'Transferencia', v: r.transferencia, c: '#7cff6b' }, { t: 'Fiado', v: r.credito, c: '#ffb800' }])}
+        <div class="pg"><div><span>${ICON_GARR}</span><b>${r.garrafones}</b><small>garrafones</small></div><div><span class="gl">${ICON_GARR}</span><b>${r.galones}</b><small>galones</small></div></div></section>
+      <section class="card"><div class="tot"><h3>Te deben</h3><b class="deb">${money(Math.round(r.porCobrar))}</b></div>${barrasNombre(deb.map(d => ({ n: d.nombre, v: d.saldo })), deb.length ? deb[0].saldo : 1, '#ffb800', true)}</section>
+      <section class="card"><h3>Tus mejores clientes</h3>${barrasNombre(top.map(c => ({ n: c.nombre, v: c.total })), top.length ? top[0].total : 1, '#00c8ff') || '<p class="muted">Sin ventas.</p>'}</section>
+      <section class="card"><h3>En qué se va el dinero</h3>${barrasNombre(gas.map(g => ({ n: g.categoria, v: g.total })), gas.length ? gas[0].total : 1, '#ff4fd8') || '<p class="muted">Sin gastos capturados.</p>'}</section>
+      ${ojo.length ? `<section class="card"><h3>Llámales: compran menos o dejaron de comprar</h3><div class="ojo">${ojo.map(n => `<span>${esc(nice(n))}</span>`).join('')}</div></section>` : ''}
+    </div>`;
+}
+
 VISTAS.salida.despues = () => { const i = $('#rSalida'); if (i) i.onchange = () => { S.regSel = i.value; render(); }; };
 VISTAS.separador.despues = () => { const i = $('#sepDia'); if (i) i.onchange = () => { if (!i.value) return; S.sep.dia = i.value; S.sep.data = null; render(); }; };
 
@@ -1520,6 +1719,7 @@ document.addEventListener('click', async e => {
     if (d.go === 'agenda') S.agenda = null;
     if (d.go === 'prestamos') S.prestamos = null;
     if (d.go === 'separador') S.sep = null;
+    if (d.go === 'historial') S.hist = null;
     if (d.go === 'control') S.control = { periodo: 'semana', data: null, desde: '', hasta: '' };
     ir(d.go, { id: d.id, pedido: d.pedido }); return;
   }
@@ -1536,6 +1736,11 @@ document.addEventListener('click', async e => {
   if (d.avpara) { S.nuevoAviso.para = d.avpara; render(); return; }
   if (d.periodo) { S.panel.periodo = d.periodo; if (d.periodo !== 'rango') { S.panel.data = null; render(); } else render(); return; }
   if (d.tab) { S.panel.tab = d.tab; render(); return; }
+  if (d.hper) { S.hist.per = d.hper; S.hist.abierta = null; if (d.hper !== 'dia') S.hist.data = null; else { S.hist.dia = S.hist.dia || S.data.hoy; S.hist.data = null; } render(); return; }
+  if (d.hv) { S.hist.abierta = S.hist.abierta === d.hv ? null : d.hv; S.hist.met = null; S.hist.borrar = null; render(); return; }
+  if (d.emet) { S.hist.met = d.emet; document.querySelectorAll('[data-emet]').forEach(x => x.setAttribute('aria-pressed', x.dataset.emet === d.emet)); return; }
+  if (d.vercomp !== undefined) { S.mapa.verComprados = !S.mapa.verComprados; render(); return; }
+  if (d.zdias) { S.mapa.zDias = +d.zdias; S.mapa.zonas = null; render(); return; }
   if (d.cper) { S.control.periodo = d.cper; if (d.cper !== 'rango') S.control.data = null; render(); return; }
   const a = d.act; if (!a) return;
   try {
@@ -1584,6 +1789,15 @@ document.addEventListener('click', async e => {
     else if (a === 'pushActivar') { loading(true, 'Activando…'); try { await activarPush(); toast('Notificaciones activas'); } catch (er) { toast(er.message, true); } finally { loading(false); } render(); }
     else if (a === 'pushProbar') { const sub = await subPush(); await run('apiPushProbar', [S.token, sub.endpoint], 'Mandando prueba…'); toast('Prueba enviada: te debe llegar en unos segundos'); }
     else if (a === 'pushApagar') { const sub = await subPush(); if (sub) { await run('apiPushQuitar', [S.token, sub.endpoint], 'Apagando…'); try { await sub.unsubscribe(); } catch (er) {} } PUSH.on = false; PUSH.prefs = null; toast('Notificaciones apagadas en este celular'); render(); }
+    else if (a === 'hvGuardar') {
+      const r = await run('apiEditarVenta', [S.token, d.id, { cantidad: $('#eCant').value, precio: $('#ePre').value, metodo: S.hist.met || '' }], 'Guardando cambios…');
+      toast('Venta corregida: ' + money(r.total)); S.hist.data = null; S.hist.abierta = null; S.panel.data = null; await cargar(true); render();
+    }
+    else if (a === 'hvBorrar') {
+      if (S.hist.borrar !== d.id) { S.hist.borrar = d.id; b.textContent = '¿Seguro? Toca otra vez'; b.classList.add('confirma'); return; }
+      await run('apiBorrarVenta', [S.token, d.id], 'Borrando venta…');
+      toast('Venta borrada'); S.hist.data = null; S.hist.abierta = null; S.hist.borrar = null; S.panel.data = null; await cargar(true); render();
+    }
     else if (a === 'enviarCola') { await enviarCola(); render(); }
     else if (a === 'descartarMal') { const m = COLA.mal; m.splice(+d.i, 1); COLA.mal = m; render(); }
     else if (a === 'ticketListo') { S.ticket = null; ir('inicio', {}, true); S.historial = []; }
