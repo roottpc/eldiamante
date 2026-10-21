@@ -418,7 +418,7 @@ function call(fn, ...args) {
           if (!j) { fail(new Error(/doPost|no se encontr|not found/i.test(t) ? 'El servidor todavía no tiene la versión nueva: pega el Code.gs nuevo en Apps Script y crea una Nueva versión de la implementación.' : /accounts\.google|ServiceLogin|iniciar sesi/i.test(t) ? 'La implementación pide cuenta de Google. En Apps Script cambia el acceso a "Cualquier persona".' : 'El servidor respondió algo inesperado. Revisa que la implementación esté actualizada.')); return; }
           if (j.ok) ok(j.r); else falla(new Error(j.error || 'Error del servidor'), fail);
         })
-        .catch(() => { const er = new Error(navigator.onLine === false ? 'Sin internet. Revisa tu señal e intenta de nuevo.' : 'No se pudo hablar con el servidor. Si es la primera vez, falta pegar el Code.gs nuevo en Apps Script y crear una Nueva versión con acceso para "Cualquier persona".'); er.offline = navigator.onLine === false; fail(er); });
+        .catch(() => { const er = new Error(navigator.onLine === false ? 'Sin internet. Revisa tu señal e intenta de nuevo.' : 'No se pudo hablar con el servidor. Si es la primera vez, falta pegar el Code.gs nuevo en Apps Script y crear una Nueva versión con acceso para "Cualquier persona".'); er.offline = true; fail(er); });
     });
   }
   return new Promise((ok, fail) => {
