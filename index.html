@@ -700,7 +700,7 @@ VISTAS.inicio = () => {
       <button class="big alt" data-go="salida">${ICON.salida}Salida / regreso</button>
       <button class="big alt" data-go="corte">${ICON.corte}Corte del día</button>
       <button class="big alt" data-go="calidad">${ICON.calidad}Calidad del agua</button>
-      ${esDueno() ? `<button class="big" data-go="control" style="grid-column:1/-1;flex-direction:row;align-items:center;min-height:0">${ICON.escudo}Control antirrobo${d.porConfirmar ? ` <span class="pill p-bad">${d.porConfirmar} por confirmar</span>` : ''}</button>` : ''}
+      ${esDueno() ? `<button class="big" data-go="control" style="grid-column:1/-1;flex-direction:row;align-items:center;min-height:0">${ICON.escudo}Cuadre del negocio${d.porConfirmar ? ` <span class="pill p-bad">${d.porConfirmar} por confirmar</span>` : ''}</button>` : ''}
       ${esDueno() ? `<button class="big alt" data-go="historial">${ICON.pedidos}Historial de ventas</button>` : ''}
       ${esDueno() ? `<button class="big alt" data-go="agenda">${ICON.agenda}Agenda</button><button class="big alt" data-go="separador">${ICON.sobres}Separador del día</button><button class="big alt" data-go="prestamos" style="grid-column:1/-1;flex-direction:row;align-items:center;min-height:0">${ICON.prestamo}Préstamos a trabajadores</button>` : ''}
       <button class="big alt" data-go="avisos" style="grid-column:1/-1;flex-direction:row;align-items:center;min-height:0">${ICON_CAMPANA}Avisos del equipo${AV.noLeidos ? ` <span class="pill p-bad">${AV.noLeidos}</span>` : ''}</button>
@@ -1438,7 +1438,7 @@ VISTAS.ticket.despues = () => {
   if (a) a.addEventListener('click', () => { const t = S.ticket; if (!t) return; t.enviado = true; call('apiTicket', S.token, t.ids, t.idCliente).catch(() => {}); setTimeout(render, 400); });
 };
 
-/* ============ Control antirrobo (solo dueño) ============ */
+/* ============ Cuadre del negocio (solo dueño) ============ */
 function rangoControl() {
   const C = S.control, hoy = S.data.hoy;
   const menos = n => { const [y, m, d] = hoy.split('-').map(Number); const x = new Date(y, m - 1, d - n); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
@@ -1469,13 +1469,13 @@ VISTAS.control = () => {
   if (!C.data) {
     const [de, a] = rangoControl();
     setTimeout(async () => { try { C.data = await run('apiControl', [S.token, de, a], 'Revisando el negocio…'); S.data.porConfirmar = C.data.pendientes.length; render(); } catch (e) {} }, 0);
-    return marco('Control antirrobo', 'Revisando…', chips + '<p class="muted">Cargando…</p>', true);
+    return marco('Cuadre del negocio', 'Revisando…', chips + '<p class="muted">Cargando…</p>', true);
   }
   const r = C.data, pct = (a, b) => (b ? Math.round(a * 100 / b) : 0);
   const n = { alta: 0, media: 0, baja: 0 }; r.alertas.forEach(a => n[a.nivel]++);
   const score = Math.max(4, 100 - n.alta * 14 - n.media * 6 - n.baja * 2);
   const tono = score >= 80 ? 'ok' : score >= 50 ? 'warn' : 'bad';
-  const veredicto = { ok: 'Sin fugas importantes', warn: 'Hay fugas que revisar', bad: 'Se está yendo dinero' }[tono];
+  const veredicto = { ok: 'Todo cuadra', warn: 'Hay detalles por revisar', bad: 'Hay cosas que no cuadran' }[tono];
   const hero = `<section class="ctl-hero ctl-${tono}">${garrafonNivel(score, tono)}
     <div class="ctl-v"><h3>${veredicto}</h3><p class="muted">Del ${fmtDiaLargo(r.desde)} al ${fmtDiaLargo(r.hasta)}. El garrafón se llena cuando todo cuadra.</p>
       <div class="ctl-n"><span class="c-bad"><b>${n.alta}</b> graves</span><span class="c-warn"><b>${n.media}</b> por revisar</span><span class="c-low"><b>${n.baja}</b> menores</span></div></div></section>`;
@@ -1513,7 +1513,7 @@ VISTAS.control = () => {
     <small class="muted">Cada garrafón lleva una tapa. Registra todas las compras de tapas en "Gasto o compra": si con el tiempo se gastan más tapas que garrafones vendidos, hay agua saliendo sin registrar.</small></section>`;
   const aj = r.ajustes.length ? `<section class="card"><h3>Deudas canceladas con ajuste</h3><p class="muted" style="margin:0">Pagos que nunca se registraron y se dieron por buenos.</p>${r.ajustes.map(a => `<div class="bp"><div><b>${esc(nice(a.cliente))}</b><small class="muted">${fmtDiaLargo(a.dia)}</small></div><b class="bp-m">${money(a.monto)}</b></div>`).join('')}</section>` : '';
   const cam = r.cambios.length ? `<section class="card"><h3>Cambios delicados</h3>${r.cambios.map(c => `<div class="bp"><div><b>${esc(nice(c.accion))}</b><small class="muted">${esc(c.detalle)}</small></div><small class="muted" style="text-align:right">${esc(c.cuando)}<br>${esc(nice(c.quien))}</small></div>`).join('')}</section>` : '';
-  return marco('Control antirrobo', 'Del ' + fmtDia(r.desde) + ' al ' + fmtDia(r.hasta), `${chips}${hero}${pend}${alertas}${trab}${cuadre}${bajo}${cortes}${tapas}${aj}${cam}`, true);
+  return marco('Cuadre del negocio', 'Del ' + fmtDia(r.desde) + ' al ' + fmtDia(r.hasta), `${chips}${hero}${pend}${alertas}${trab}${cuadre}${bajo}${cortes}${tapas}${aj}${cam}`, true);
 };
 
 /* ============ notificaciones (solo en la app instalable) ============ */

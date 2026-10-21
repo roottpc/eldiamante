@@ -18,7 +18,7 @@ const CONFIG = {
   COMISION: { 'GARRAFON': 4, 'GALON': 2 },          // por unidad vendida en ruta (igual que tu hoja)
   DIAS_CLIENTE_PERDIDO: 21,                         // sin comprar más de estos días = llamar
   EXIGIR_UBICACION_EN_RUTA: true,                   // la venta en ruta no se guarda sin ubicación (ponlo en false si el celular no la permite)
-  DISTANCIA_ALERTA_M: 200,                          // venta registrada a más de estos metros del cliente = marcada en Control
+  DISTANCIA_ALERTA_M: 200,                          // venta registrada a más de estos metros del cliente = marcada en Cuadre del negocio
   LIMITE_CREDITO: 600,                              // fiado máximo por cliente si no tiene LIMITE_CREDITO propio en CLIENTES
   RAFAGA: { ventas: 5, minutos: 10 },               // 5 o más ventas en 10 minutos = capturadas de golpe, no en el cliente
   ROLES_SALIDA: ['PLANTA', 'DUENO'],                // quién registra salidas y regresos (el repartidor no)
@@ -1573,7 +1573,7 @@ function reporteDiario() {
   MailApp.sendEmail(CONFIG.CORREO_DUENO, 'Resumen ' + hoy + ' · ' + CONFIG.NEGOCIO, lineas.join('\n'));
 }
 
-// ======================= CONTROLES ANTIRROBO =======================
+// ======================= CONTROLES Y CUADRE =======================
 function dinero_(n) { return '$' + (Math.round(num_(n) * 100) / 100).toLocaleString('es-MX'); }
 function esc_(s) { return norm_(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
@@ -1612,7 +1612,7 @@ function avisoA_(para, mensaje, tipo) {
 function porConfirmar_(tipo, idMov, cliente, monto, quien) {
   hojaNueva_('VERIFICACIONES');
   escribir_('VERIFICACIONES', { 'ID': id_(), 'FECHA': fechaDeKey_(hoyKey_()), 'TIPO': tipo, 'ID_MOV': idMov, 'CLIENTE': cliente, 'MONTO': monto, 'REGISTRO': quien, 'ESTATUS': 'PENDIENTE' });
-  avisoDueno_({ nombre: quien, rol: 'SISTEMA' }, 'Revisa tu banco: ' + quien + ' registró una transferencia de ' + dinero_(monto) + ' de ' + cliente + ' (' + (tipo === 'VENTA' ? 'venta' : 'abono') + '). Confírmala en Control.');
+  avisoDueno_({ nombre: quien, rol: 'SISTEMA' }, 'Revisa tu banco: ' + quien + ' registró una transferencia de ' + dinero_(monto) + ' de ' + cliente + ' (' + (tipo === 'VENTA' ? 'venta' : 'abono') + '). Confírmala en Cuadre del negocio.');
 }
 function verificacionesPendientes_() {
   return leer_('VERIFICACIONES').filter(v => up_(v.ESTATUS) === 'PENDIENTE').map(v => ({
@@ -1749,7 +1749,7 @@ function cuentaHTML_(codigo) {
     '<p class="nota">Si algo no coincide con lo que pagaste o recibiste, avísale directamente a Oscar.<br>Actualizado el ' + Utilities.formatDate(new Date(), CONFIG.ZONA, 'dd/MM/yyyy') + ' a las ' + Utilities.formatDate(new Date(), CONFIG.ZONA, 'HH:mm') + '.</p>');
 }
 
-// ---------- panel de Control (solo dueño) ----------
+// ---------- Cuadre del negocio (solo dueño) ----------
 function apiControl(token, desde, hasta) {
   sesion_(token, true);
   const hoy = hoyKey_();
@@ -1852,8 +1852,8 @@ function apiControl(token, desde, hasta) {
   const pct = (a, b) => (b ? Math.round(a * 100 / b) : 0);
   trabajadores.forEach(t => {
     if (t.ruta >= 5 && pct(t.enCliente, t.ruta) < 60) alertas.push({ nivel: 'alta', texto: nice_(t.nombre) + ' registró solo el ' + pct(t.enCliente, t.ruta) + '% de sus ventas junto al cliente (' + t.enCliente + ' de ' + t.ruta + ').' });
-    if (t.rafaga >= CONFIG.RAFAGA.ventas) alertas.push({ nivel: 'alta', texto: nice_(t.nombre) + ' capturó ' + t.rafaga + ' ventas de golpe (5 o más en 10 minutos). Así puede decidir después qué reporta.' });
-    if (t.ruta >= 5 && pct(t.tickets, t.ruta) < 50) alertas.push({ nivel: 'media', texto: nice_(t.nombre) + ' mandó ticket en ' + t.tickets + ' de ' + t.ruta + ' ventas. Sin ticket el cliente no puede avisarte si le cobraron distinto.' });
+    if (t.rafaga >= CONFIG.RAFAGA.ventas) alertas.push({ nivel: 'alta', texto: nice_(t.nombre) + ' capturó ' + t.rafaga + ' ventas de golpe (5 o más en 10 minutos), no frente al cliente. Conviene pedirle que registre cada venta al momento.' });
+    if (t.ruta >= 5 && pct(t.tickets, t.ruta) < 50) alertas.push({ nivel: 'media', texto: nice_(t.nombre) + ' mandó ticket en ' + t.tickets + ' de ' + t.ruta + ' ventas. Con el ticket, el cliente puede avisarte si algo no coincide.' });
     const tot = t.efectivo + t.credito + t.transferencia;
     if (tot > 0 && pct(t.credito, tot) >= 25) alertas.push({ nivel: 'media', texto: nice_(t.nombre) + ' vendió el ' + pct(t.credito, tot) + '% a fiado (' + dinero_(t.credito) + '). Confirma con los clientes que de verdad quedaron debiendo.' });
     if (t.cambiosGalon) alertas.push({ nivel: 'baja', texto: nice_(t.nombre) + ' registró ' + t.cambiosGalon + ' cambio(s) de galón sin cobro.' });
