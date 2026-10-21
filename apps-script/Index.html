@@ -1196,7 +1196,7 @@ function miniMapa(grupos, planta, opts) {
   }
   grupos.forEach(g => {
     const ruta = g.cerrar ? [planta].concat(g.puntos, [planta]) : g.desdePlanta ? [planta].concat(g.puntos) : g.puntos;
-    if (ruta.length > 1) svg += `<polyline points="${ruta.map(p => X(p) + ',' + Y(p)).join(' ')}" fill="none" stroke="${g.color}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity=".85" ${g.punteado ? 'stroke-dasharray="6 6"' : ''}/>`;
+    if (ruta.length > 1 && !g.sinLinea) svg += `<polyline points="${ruta.map(p => X(p) + ',' + Y(p)).join(' ')}" fill="none" stroke="${g.color}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity=".85" ${g.punteado ? 'stroke-dasharray="6 6"' : ''}/>`;
   });
   grupos.forEach(g => g.puntos.forEach((p, i) => {
     const r = p.grande ? 11 : 9;
@@ -1213,7 +1213,7 @@ function mapaViajes(R, soloPendientes, verComprados) {
     puntos: t.paradas.map((p, i) => ({ lat: p.lat, lon: p.lon, tenue: p.visitado, etiqueta: i + 1, visto: p.visitado })).filter(p => !soloPendientes || !p.visto) }));
   if (soloPendientes && verComprados) {
     const ya = [].concat(...R.viajes.map(t => t.paradas.filter(p => p.visitado)));
-    if (ya.length) grupos.push({ nombre: 'Ya compraron', color: '#3dffa8', puntos: ya.map(p => ({ lat: p.lat, lon: p.lon, etiqueta: '✓' })) });
+    if (ya.length) grupos.push({ nombre: 'Ya compraron', color: '#3dffa8', sinLinea: true, puntos: ya.map(p => ({ lat: p.lat, lon: p.lon, etiqueta: '✓' })) });
   }
   return miniMapa(grupos, P, { vacio: soloPendientes ? 'Ya se visitaron todas las paradas con ubicación' : 'No hay paradas con ubicación', alt: 'Mapa de los viajes' });
 }
@@ -1233,7 +1233,7 @@ function mapaRutaHTML(R) {
     const ya = [].concat(...R.viajes.map(t => t.paradas.filter(p => p.visitado))).length;
     const faltan = [].concat(...R.viajes.map(t => t.paradas.filter(p => !p.visitado))).length;
     cuerpo = mapaViajes(R, true, M.verComprados) + `<div class="tot" style="align-items:center"><small class="muted">${faltan ? 'Faltan ' + faltan + ' por visitar. Los que ya compraron desaparecen del mapa.' : 'Ya se visitaron todas las paradas.'}</small>
-      ${ya ? `<button class="chip" data-vercomp aria-pressed="${!!M.verComprados}">${M.verComprados ? 'Ocultar' : 'Ver'} los ${ya} que compraron</button>` : ''}</div>`;
+      ${ya ? `<button class="chip" style="white-space:nowrap;flex:none" data-vercomp aria-pressed="${!!M.verComprados}">✓ ${M.verComprados ? 'Ocultar' : 'Ver'} ${ya} que compraron</button>` : ''}</div>`;
   }
   if (M.tab === 'zonas') {
     M.zDias = M.zDias || 60;
