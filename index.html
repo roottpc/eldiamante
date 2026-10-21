@@ -336,7 +336,7 @@ i.cq-l{background:var(--ok);opacity:.85;top:3px;bottom:3px}
 .area .a-max{font:700 13px var(--mono);fill:var(--ink)}.area .a-d{font:11px var(--mono);fill:var(--muted)}
 .dona{display:grid;grid-template-columns:140px 1fr;gap:14px;align-items:center}
 .dona svg{width:140px;height:140px}.dona circle{transition:stroke-dasharray .6s}
-.dona .d-n{font:800 17px var(--display);fill:var(--ink)}.dona .d-s{font:12px var(--display);fill:var(--muted)}
+.dona .d-n{font:800 14.5px var(--display);fill:var(--ink)}.dona .d-s{font:12px var(--display);fill:var(--muted)}
 .dona ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;font-size:13.5px}
 .dona li{display:flex;align-items:center;gap:8px}.dona li span{flex:1}.dona li i,.ba-l i{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
 .dona li b{font-family:var(--mono)}
@@ -1688,7 +1688,7 @@ function panelResumen(r) {
   const deb = (r.deudores || []).slice(0, 5);
   const top = (r.topClientes || []).slice(0, 6);
   const gas = (r.gastosPorCategoria || []).slice(0, 6);
-  const ojo = (r.bajaron || []).slice(0, 6).map(c => c.nombre).concat((r.perdidos || []).slice(0, 6).map(c => c.nombre)).slice(0, 10);
+  const ojo = (r.bajaron || []).slice(0, 6).map(c => c.nombre).concat((r.perdidos || []).slice(0, 6).map(c => c.nombre)).filter((n, i, l) => l.indexOf(n) === i).slice(0, 10);
   return `<section class="card ph"><div class="ph-t"><div><small class="muted">Vendiste</small><b class="ph-n">${money(Math.round(r.ventas))}</b></div>${p == null ? '' : `<span class="pill ${p >= 0 ? 'p-ok' : 'p-bad'}">${p >= 0 ? '▲' : '▼'} ${Math.abs(p)}%</span>`}</div>${areaDias(r.porDia || [])}</section>
     <div class="cols">
       <section class="card"><h3>Qué quedó de lo vendido</h3>${dona([{ t: 'Te quedó', v: util, c: util >= 0 ? '#3dffa8' : '#ff5472' }, { t: 'Gastos y compras', v: egresos, c: '#ffb800' }, { t: 'Comisiones', v: r.comisiones, c: '#ff4fd8' }], dineroCorto(util), util >= 0 ? 'te quedó' : 'pérdida')}</section>

@@ -1,5 +1,5 @@
 /* El Diamante: guarda la app para abrir rápido y sin señal. Los datos siempre vienen del servidor. */
-const VERSION = 'diamante-654cf5d288';
+const VERSION = 'diamante-e7b4428233';
 const BASE = ['./', 'index.html', 'manifest.webmanifest', 'icons/badge-96.png', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(BASE)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(k => Promise.all(k.filter(x => x !== VERSION).map(x => caches.delete(x)))).then(() => self.clients.claim())); });
