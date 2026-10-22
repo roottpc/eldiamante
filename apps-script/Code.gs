@@ -28,7 +28,7 @@ const CONFIG = {
   AVISAR_PEDIDOS_A: 'RUTA',                         // a quién le suena la campana con cada pedido nuevo
   AVISAR_PEDIDOS_POR_CORREO: true,                  // te llega un correo con cada pedido nuevo
   HORA_REPORTE_DIARIO: 21,                          // 9 pm: correo con el resumen del día
-  CATEGORIAS_GASTO: ['GASOLINA', 'SUELDO', 'RENTA', 'LUZ', 'AGUA', 'REFACCIONES', 'REPARACIONES', 'FILTROS Y QUIMICOS', 'EPP', 'LIMPIEZA', 'PUBLICIDAD', 'CREDITO MOTO', 'INTERNET', 'TELEFONO', 'PERSONAL OSCAR', 'OTRO'],
+  CATEGORIAS_GASTO: ['GASOLINA', 'SUELDO', 'RENTA', 'LUZ', 'AGUA', 'REFACCIONES', 'REPARACIONES', 'FILTROS Y QUIMICOS', 'EPP', 'LIMPIEZA', 'PUBLICIDAD', 'CREDITO MOTO', 'INTERNET', 'TELEFONO', 'PAGO DEUDA', 'PERSONAL OSCAR', 'OTRO'],
   INSUMOS: ['GARRAFON', 'GALON', 'BOTELLA 1 LT', 'BOTELLA 1/2 LT', 'TAPAS', 'SELLOS', 'ETIQUETAS'],
   PUNTOS_CALIDAD: ['AGUA CRUDA', 'DESPUES DE FILTROS', 'LLENADORA', 'PRODUCTO TERMINADO'],
 };
@@ -2063,6 +2063,7 @@ const SOBRES_INICIALES = [
   ['Moto', 'FIJO_MES', 7802, 0, 3901, '15,30', 'CREDITO MOTO', 'NU', '$3,901 el 15 y el 30.'],
   ['Renta y servicios', 'FIJO_MES', 10095, 0, 4725, '18', 'RENTA,LUZ,AGUA,INTERNET,TELEFONO', 'NU', 'Renta $4,725 el 18 · luz $6,400 cada 2 meses · agua $1,750 · internet $420.'],
   ['Gasolina y mantenimiento', 'FIJO_MES', 8320, 0, '', '', 'GASOLINA,REFACCIONES,REPARACIONES,FUMIGACION,FERRETERIA,EPP,LIMPIEZA,FILTROS,BATERIA,CASETA,MANGUERA,HOME DEPOT,OTRO', 'CAJA', 'Gasolina, refacciones, fumigación y servicio de la moto.'],
+  ['Deuda Nu', 'FIJO_MES', 2000, 0, '', '', 'PAGO DEUDA', 'NU', 'Pago fijo del crédito de Nu: $2,000 al mes hasta liquidarlo. Guárdalo en otro banco, no en tu cuenta Nu. Si negocias un descuento, cambia el monto.'],
   ['Ahorro', 'PORCENTAJE', 5, 0, '', '', 'AHORRO', 'NU', '5% de lo que entra. Tu colchón: no se toca salvo emergencias.'],
   ['Tu sueldo', 'RESTO', 0, 0, '', '', 'PERSONAL', 'CAJA', 'Lo que quede después de llenar los demás.'],
 ];

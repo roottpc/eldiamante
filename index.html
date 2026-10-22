@@ -1884,7 +1884,7 @@ function textoDia(r) {
 }
 
 /* ============ sobres del día (solo dueño) ============ */
-const COLOR_SOBRE = ['#ff4fd8', '#ffb800', '#00c8ff', '#7c8cff', '#8fa3b6', '#8fa3b6', '#ff4fd8', '#3dffa8'];
+const COLOR_SOBRE = ['#ff4fd8', '#ffb800', '#00c8ff', '#7c8cff', '#8fa3b6', '#8fa3b6', '#ff8a3d', '#ff4fd8', '#3dffa8'];
 VISTAS.sobres = () => {
   if (!esDueno()) return marco('Sobres del día', '', '<div class="badbox">Solo el dueño puede ver esto.</div>', true);
   S.sob = S.sob || { dia: S.data.hoy, data: null, abierto: null, edit: false };
@@ -1896,13 +1896,13 @@ VISTAS.sobres = () => {
   const r = Z.data, P = r.plan;
   const lleno = P.necesita ? Math.min(100, P.entrada / P.necesita * 100) : 100;
   const sobre = (s, i) => {
-    const ab = Z.abierto === s.id, col = COLOR_SOBRE[i % 8];
+    const ab = Z.abierto === s.id, col = COLOR_SOBRE[i % COLOR_SOBRE.length];
     const prog = s.meta ? Math.max(0, Math.min(100, s.saldo / s.meta * 100)) : null;
     const hoyTxt = s.tipo === 'RESTO' ? (s.hoy < 0 ? '−' + money(Math.round(-s.hoy)) : money(Math.round(s.hoy))) : money(Math.round(s.hoy));
     return `<div class="sb ${ab ? 'ab' : ''}"><button class="sb-r" data-sob="${s.id}" aria-expanded="${ab}">
       <span class="sb-i" style="background:${col}">${i + 1}</span>
       <span class="sb-t"><b>${esc(s.nombre)}</b><small>${esc(s.regla)}</small>${prog != null ? `<span class="sb-p"><i style="width:${prog}%;background:${col}"></i></span>` : ''}</span>
-      <span class="sb-m"><b class="${s.tipo === 'RESTO' && s.hoy < 0 ? 'neg' : ''}">${hoyTxt}</b><span class="pill ${s.donde === 'NU' ? 'p-nu' : 'p-caja'}">${s.donde === 'NU' ? 'Nu' : 'Caja'}</span></span></button>
+      <span class="sb-m"><b class="${s.tipo === 'RESTO' && s.hoy < 0 ? 'neg' : ''}">${hoyTxt}</b><span class="pill ${s.donde === 'NU' ? 'p-nu' : 'p-caja'}">${s.donde === 'NU' ? 'Banco' : 'Caja'}</span></span></button>
       ${ab ? `<div class="sb-e">
         ${s.tipo === 'COMISION' ? '<p class="muted" style="margin:0">Se paga el mismo día, así que este sobre siempre queda en cero.</p>' : `<div class="tot"><span>Llevas apartado</span><b>${money(Math.round(s.saldo))}</b></div>
         ${s.meta ? `<div class="tot"><span>Próximo pago${s.proximo ? ' (' + fmtDiaLargo(s.proximo) + ')' : ''}</span><b>${money(s.meta)}</b></div>` : ''}
@@ -1912,7 +1912,7 @@ VISTAS.sobres = () => {
           <label class="f">${s.tipo === 'POR_VENTA' ? 'Por garrafón' : s.tipo === 'PORCENTAJE' ? 'Porcentaje' : 'Al mes'}<input class="inp" id="sbMonto" inputmode="decimal" value="${s.monto}"></label>
           ${s.tipo === 'POR_VENTA' ? `<label class="f">Por galón<input class="inp" id="sbGalon" inputmode="decimal" value="${s.montoGalon}"></label>` : `<label class="f">Pago (meta)<input class="inp" id="sbMeta" inputmode="decimal" value="${s.meta || ''}" placeholder="Sin meta"></label>`}</div>
           <label class="f">Ya tenías apartado al empezar<input class="inp" id="sbIni" inputmode="decimal" placeholder="$0"></label>
-          <div class="seg">${[['CAJA', 'Se guarda en caja'], ['NU', 'Se guarda en Nu']].map(([k, t]) => `<button data-sbdonde="${k}" aria-pressed="${(Z.donde || s.donde) === k}">${t}</button>`).join('')}</div>
+          <div class="seg">${[['CAJA', 'Se guarda en caja'], ['NU', 'Se guarda en el banco']].map(([k, t]) => `<button data-sbdonde="${k}" aria-pressed="${(Z.donde || s.donde) === k}">${t}</button>`).join('')}</div>
           <button class="btn small" data-act="sbGuardar" data-id="${s.id}">Guardar sobre</button>` : ''}
       </div>` : ''}</div>`;
   };
@@ -1925,7 +1925,7 @@ VISTAS.sobres = () => {
       <div class="tot" style="font-size:13px"><span class="muted">Necesitas apartar hoy</span><b>${money(Math.round(P.necesita))}</b></div>
       ${P.falta ? `<div class="badbox">Hoy no alcanzó: faltan ${money(Math.round(P.falta))}.${P.fiado ? ' Cobra el fiado esta semana para completar los sobres.' : ''}</div>` : '<div class="okbox">Alcanzó para todos los sobres.</div>'}
     </section>
-    ${r.aNu ? `<div class="sb-nu"><b>Mueve ${money(Math.round(r.aNu))} a tus cajitas de Nu</b><small>${r.sobres.filter(s => s.donde === 'NU' && s.alcanza > 0).map(s => esc(s.nombre) + ' ' + money(Math.round(s.alcanza))).join(' · ')}</small></div>` : ''}
+    ${r.aNu ? `<div class="sb-nu"><b>Mueve ${money(Math.round(r.aNu))} a tu cuenta de banco</b><small>${r.sobres.filter(s => s.donde === 'NU' && s.alcanza > 0).map(s => esc(s.nombre) + ' ' + money(Math.round(s.alcanza))).join(' · ')}</small></div>` : ''}
     <section class="card" style="gap:0;padding:6px 14px">${r.sobres.map(sobre).join('')}</section>
     ${r.avisos.map(a => `<div class="warnbox">${esc(a.texto)}</div>`).join('')}
     <button class="btn ${r.separadoHoy ? 'sec' : ''}" data-act="sbSeparar">${r.separadoHoy ? '✓ Ya separaste los sobres de hoy' : 'Ya separé los sobres de hoy'}</button>
