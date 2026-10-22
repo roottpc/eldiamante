@@ -43,6 +43,8 @@ const HOJAS_NUEVAS = {
   SEPARADOR: ['CONCEPTO', 'FORMA', 'MONTO', 'NOTA'],
   VERIFICACIONES: ['ID', 'FECHA', 'TIPO', 'ID_MOV', 'CLIENTE', 'MONTO', 'REGISTRO', 'ESTATUS', 'REVISO', 'FECHA_REVISION'],
   PUSH: ['ID', 'USUARIO', 'ROL', 'ENDPOINT', 'AVISOS', 'PEDIDOS', 'VENTAS', 'CREADO', 'ULTIMO'],
+  FISCAL: ['ID_CLIENTE', 'CLIENTE', 'RFC', 'RAZON_SOCIAL', 'CP', 'REGIMEN', 'USO_CFDI', 'CORREO', 'CSF_ID', 'ACTUALIZADO', 'NOTA'],
+  FACTURAS: ['ID', 'FECHA', 'MES', 'ID_CLIENTE', 'CLIENTE', 'RFC', 'FOLIO', 'TOTAL', 'UUID', 'PDF_ID', 'XML_ID', 'OTRO_ID', 'SUBIO', 'SUBIDO', 'ESTATUS', 'RECIBIO', 'FECHA_RECIBIDA', 'NOTA'],
 };
 
 // Lo que se separa cada día (se puede cambiar en la hoja SEPARADOR). FORMA: DIARIO, POR GARRAFON, POR GALON, PORCENTAJE o COMISION.
@@ -213,6 +215,9 @@ function sesion_(token, soloDueno) {
   if (!raw) throw new Error('SESION');
   const s = JSON.parse(raw);
   if (s.exp < Date.now()) { PropertiesService.getScriptProperties().deleteProperty('t_' + token); throw new Error('SESION'); }
+  if (soloDueno === 'FACTURAS_O_TODOS') return s.u;
+  if (soloDueno === 'FACTURAS') { if (s.u.rol !== 'DUENO' && s.u.rol !== 'CONTADOR') throw new Error('No tienes acceso a facturas.'); return s.u; }
+  if (s.u.rol === 'CONTADOR') throw new Error('Tu acceso es solo al apartado de facturas.');
   if (soloDueno && s.u.rol !== 'DUENO') throw new Error('Solo el dueño puede ver esto.');
   return s.u;
 }
@@ -396,7 +401,9 @@ const esPaso_ = g => g && g.base === CONFIG.NOMBRE_CLIENTE_PASO;
 
 // ======================= INICIO (datos para la app) =======================
 function apiInicio(token) {
-  const u = sesion_(token);
+  const u0 = sesion_(token, 'FACTURAS_O_TODOS');
+  if (u0.rol === 'CONTADOR') return { user: u0, hoy: hoyKey_(), negocio: CONFIG.NEGOCIO, contador: true, clientes: [], pedidos: [], productos: [] };
+  const u = u0;
   const idPaso = idClientePaso_();
   const hoy = hoyKey_();
   const B = base_();
@@ -2396,6 +2403,280 @@ function autorizarNotificaciones() {
   vapid_();
   UrlFetchApp.fetch('https://www.google.com', { muteHttpExceptions: true });
   Logger.log('Listo: notificaciones autorizadas.');
+}
+
+// ======================= FACTURAS (dueño y contador) =======================
+// Datos fiscales del cliente + su Constancia de Situación Fiscal, y las facturas (PDF y XML) que le haces.
+// Los archivos se guardan en tu Google Drive, en la carpeta "El Diamante · Facturas". El contador entra con su PIN (rol CONTADOR)
+// y solo ve este apartado.
+const REGIMENES = [['601', 'General de Ley Personas Morales'], ['603', 'Personas Morales con Fines no Lucrativos'], ['605', 'Sueldos y Salarios'], ['606', 'Arrendamiento'], ['612', 'Personas Físicas con Actividades Empresariales y Profesionales'], ['616', 'Sin obligaciones fiscales'], ['621', 'Incorporación Fiscal'], ['625', 'Plataformas Tecnológicas'], ['626', 'Régimen Simplificado de Confianza']];
+const USOS_CFDI = [['G01', 'Adquisición de mercancías'], ['G03', 'Gastos en general'], ['S01', 'Sin efectos fiscales'], ['CP01', 'Pagos']];
+const MAX_ARCHIVO_MB = 8;
+
+function sesionFact_(token, soloDueno) {
+  const u = sesion_(token, 'FACTURAS');
+  if (soloDueno && u.rol !== 'DUENO') throw new Error('Solo Oscar puede cambiar esto.');
+  return u;
+}
+
+function carpetaFact_(sub) {
+  const props = PropertiesService.getScriptProperties();
+  let raiz = null;
+  const id = props.getProperty('fact_carpeta');
+  if (id) { try { raiz = DriveApp.getFolderById(id); if (raiz.isTrashed()) raiz = null; } catch (e) { raiz = null; } }
+  if (!raiz) { raiz = DriveApp.createFolder('El Diamante · Facturas'); props.setProperty('fact_carpeta', raiz.getId()); }
+  let f = raiz;
+  (sub || []).forEach(n => { const it = f.getFoldersByName(n); f = it.hasNext() ? it.next() : f.createFolder(n); });
+  return f;
+}
+
+function guardarArchivo_(carpeta, a, nombre) {
+  if (!a || !a.b64) return null;
+  const bytes = Utilities.base64Decode(a.b64);
+  if (bytes.length > MAX_ARCHIVO_MB * 1048576) throw new Error('El archivo ' + a.nombre + ' pesa más de ' + MAX_ARCHIVO_MB + ' MB.');
+  const tipo = a.tipo || (/\.xml$/i.test(a.nombre) ? 'text/xml' : /\.pdf$/i.test(a.nombre) ? 'application/pdf' : 'application/octet-stream');
+  return carpeta.createFile(Utilities.newBlob(bytes, tipo, nombre || a.nombre)).getId();
+}
+function limpiaNombre_(s) { return norm_(s).replace(/[\\/:*?"<>|#%]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60) || 'cliente'; }
+function mesFact_(f) { const m = f.MES; if (typeof m === 'string' && /^\d{4}-\d{2}$/.test(m.trim())) return m.trim(); if (m instanceof Date) return Utilities.formatDate(m, CONFIG.ZONA, 'yyyy-MM'); return mesKey_(f.FECHA); }
+function mesKey_(d) { d = aFecha_(d); return d ? Utilities.formatDate(d, CONFIG.ZONA, 'yyyy-MM') : ''; }
+
+/** Lee lo que trae un XML de factura (CFDI 4.0 o 3.3): folio, total, fecha, RFC y nombre del receptor, UUID. */
+function leerCfdi_(texto) {
+  try {
+    const root = XmlService.parse(texto).getRootElement();
+    const at = (el, n) => { const a = el && el.getAttribute(n); return a ? a.getValue() : ''; };
+    const hijo = (el, n) => el ? el.getChildren().find(c => c.getName() === n) : null;
+    const rec = hijo(root, 'Receptor'), emi = hijo(root, 'Emisor'), comp = hijo(root, 'Complemento');
+    const tfd = comp ? comp.getChildren().find(c => c.getName() === 'TimbreFiscalDigital') : null;
+    return {
+      folio: [at(root, 'Serie'), at(root, 'Folio')].filter(Boolean).join('-'), total: num_(at(root, 'Total')), fecha: at(root, 'Fecha').slice(0, 10),
+      rfc: at(rec, 'Rfc'), nombre: at(rec, 'Nombre'), emisor: at(emi, 'Rfc'), uuid: at(tfd, 'UUID'), tipo: at(root, 'TipoDeComprobante'),
+    };
+  } catch (e) { return null; }
+}
+
+function apiFacturas(token) {
+  const u = sesionFact_(token);
+  hojaNueva_('FISCAL'); hojaNueva_('FACTURAS');
+  const hoy = hoyKey_(), mes = hoy.slice(0, 7);
+  const B = base_();
+  const fis = {}; leer_('FISCAL').forEach(f => { fis[norm_(f.ID_CLIENTE)] = f; });
+  const facts = leer_('FACTURAS').map(f => ({
+    id: norm_(f.ID), fecha: diaKey_(f.FECHA), mes: mesFact_(f), idCliente: norm_(f.ID_CLIENTE), cliente: norm_(f.CLIENTE), rfc: norm_(f.RFC),
+    folio: norm_(f.FOLIO), total: num_(f.TOTAL), uuid: norm_(f.UUID), pdf: norm_(f.PDF_ID), xml: norm_(f.XML_ID), otro: norm_(f.OTRO_ID),
+    estatus: up_(f.ESTATUS) || 'NUEVA', nota: norm_(f.NOTA), subido: Utilities.formatDate(aFecha_(f.SUBIDO) || new Date(), CONFIG.ZONA, 'yyyy-MM-dd'),
+  })).sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
+  // ventas del mes por cliente (para saber qué falta facturar)
+  const vMes = {};
+  B.ventas.forEach(v => {
+    const k = diaKey_(v.FECHA); if (!k) return;
+    const g = B.grupoDe[norm_(v.ID_CLIENTE)]; if (!g) return;
+    const id = norm_(g.principal.ID_CLIENTE), m = k.slice(0, 7);
+    const o = vMes[id] || (vMes[id] = {}); o[m] = r2_((o[m] || 0) + num_(v.TOTAL));
+  });
+  const facMes = {}; facts.forEach(f => { const o = facMes[f.idCliente] || (facMes[f.idCliente] = {}); o[f.mes] = r2_((o[f.mes] || 0) + f.total); });
+  const clientes = Object.keys(B.grupos).map(k => {
+    const g = B.grupos[k], c = g.principal, id = norm_(c.ID_CLIENTE), f = fis[id];
+    const pide = up_(c.FACTURA) === 'SI' || !!f;
+    return {
+      id: id, nombre: g.base, factura: pide, estatus: up_(c.ESTATUS_CLIENTE) || 'ACTIVO',
+      rfc: f ? norm_(f.RFC) : norm_(c.RFC), razon: f ? norm_(f.RAZON_SOCIAL) : '', cp: f ? norm_(f.CP) : '', regimen: f ? norm_(f.REGIMEN) : '',
+      uso: f ? norm_(f.USO_CFDI) : '', correo: f ? norm_(f.CORREO) : norm_(c.CORREO), nota: f ? norm_(f.NOTA) : '',
+      csf: f ? norm_(f.CSF_ID) : '', csfFecha: f && f.ACTUALIZADO ? diaKey_(f.ACTUALIZADO) : '',
+      ventasMes: (vMes[id] || {})[mes] || 0, facturadoMes: (facMes[id] || {})[mes] || 0,
+    };
+  }).filter(c => c.factura || (u.rol === 'DUENO' && c.estatus !== 'INACTIVO')).sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const meses = {};
+  facts.forEach(f => { const m = meses[f.mes] || (meses[f.mes] = { mes: f.mes, n: 0, total: 0, nuevas: 0 }); m.n++; m.total = r2_(m.total + f.total); if (f.estatus === 'NUEVA') m.nuevas++; });
+  const props = PropertiesService.getScriptProperties();
+  return {
+    rol: u.rol, hoy: hoy, mes: mes, clientes: clientes, facturas: facts, meses: Object.keys(meses).sort().reverse().map(k => meses[k]),
+    regimenes: REGIMENES, usos: USOS_CFDI, correoContador: props.getProperty('fact_correo') || '',
+    contador: u.rol === 'DUENO' ? leer_('USUARIOS_APP').filter(x => up_(x.ROL) === 'CONTADOR' && up_(x.ACTIVO) !== 'NO').map(x => ({ nombre: norm_(x.NOMBRE), pin: norm_(x.PIN) })) : [],
+    carpeta: u.rol === 'DUENO' && props.getProperty('fact_carpeta') ? 'https://drive.google.com/drive/folders/' + props.getProperty('fact_carpeta') : '',
+  };
+}
+
+/** Datos fiscales de un cliente y (opcional) su Constancia de Situación Fiscal. */
+function apiFiscalGuardar(token, idCliente, datos, archivo) {
+  const u = sesionFact_(token, true);
+  hojaNueva_('FISCAL');
+  datos = datos || {};
+  const rfc = up_(datos.rfc).replace(/[\s-]/g, '');
+  if (rfc && !/^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/.test(rfc)) throw new Error('El RFC no tiene el formato correcto (12 o 13 caracteres).');
+  if (datos.cp && !/^\d{5}$/.test(norm_(datos.cp))) throw new Error('El código postal debe tener 5 números.');
+  const B = base_();
+  const g = B.grupoDe[norm_(idCliente)]; if (!g) throw new Error('No encontré ese cliente.');
+  const id = norm_(g.principal.ID_CLIENTE);
+  let csf = null;
+  if (archivo && archivo.b64) {
+    const ext = (archivo.nombre.match(/\.[a-z0-9]+$/i) || ['.pdf'])[0].toLowerCase();
+    csf = guardarArchivo_(carpetaFact_(['Constancias']), archivo, 'CSF ' + limpiaNombre_(g.base) + (rfc ? ' ' + rfc : '') + ' ' + hoyKey_() + ext);
+  }
+  conLock_(() => {
+    const f = leer_('FISCAL').find(x => norm_(x.ID_CLIENTE) === id);
+    const obj = { 'ID_CLIENTE': id, 'CLIENTE': g.base, 'RFC': rfc, 'RAZON_SOCIAL': up_(datos.razon), 'CP': norm_(datos.cp), 'REGIMEN': norm_(datos.regimen), 'USO_CFDI': norm_(datos.uso), 'CORREO': norm_(datos.correo).toLowerCase(), 'NOTA': norm_(datos.nota), 'ACTUALIZADO': new Date() };
+    if (csf) { obj.CSF_ID = csf; if (f && norm_(f.CSF_ID)) { try { DriveApp.getFileById(norm_(f.CSF_ID)).setTrashed(true); } catch (e) {} } }
+    if (f) actualizar_('FISCAL', f._fila, obj); else escribir_('FISCAL', obj);
+    // que la ficha del cliente diga que factura
+    const enc = hoja_('CLIENTES').getRange(1, 1, 1, hoja_('CLIENTES').getLastColumn()).getValues()[0].map(norm_);
+    if (enc.indexOf('FACTURA') >= 0) actualizar_('CLIENTES', g.principal._fila, { 'FACTURA': 'SI' });
+    if (rfc && enc.indexOf('RFC') >= 0) actualizar_('CLIENTES', g.principal._fila, { 'RFC': rfc });
+  });
+  log_(u.nombre, 'DATOS FISCALES', g.base + (csf ? ' + constancia' : ''));
+  return { ok: true };
+}
+
+/** Sube una factura: PDF y/o XML. Si viene el XML, de ahí se toman folio, total, fecha y RFC. */
+function apiFacturaSubir(token, data, archivos) {
+  const u = sesionFact_(token, true);
+  hojaNueva_('FACTURAS');
+  archivos = (archivos || []).filter(a => a && a.b64);
+  if (!archivos.length) throw new Error('Elige el PDF o el XML de la factura.');
+  const B = base_();
+  const g = B.grupoDe[norm_(data.idCliente)]; if (!g) throw new Error('Elige el cliente.');
+  const xml = archivos.find(a => /\.xml$/i.test(a.nombre) || /xml/.test(a.tipo || ''));
+  const cfdi = xml ? leerCfdi_(Utilities.newBlob(Utilities.base64Decode(xml.b64)).getDataAsString('UTF-8')) : null;
+  const fecha = cfdi && cfdi.fecha ? cfdi.fecha : (/^\d{4}-\d{2}-\d{2}$/.test(data.fecha || '') ? data.fecha : hoyKey_());
+  const folio = norm_(data.folio) || (cfdi && cfdi.folio) || '';
+  const total = num_(data.total) || (cfdi && cfdi.total) || 0;
+  if (!total) throw new Error('Escribe el total de la factura.');
+  const fis = leer_('FISCAL').find(x => norm_(x.ID_CLIENTE) === norm_(g.principal.ID_CLIENTE));
+  const rfc = (cfdi && cfdi.rfc) || (fis ? norm_(fis.RFC) : '');
+  if (cfdi && cfdi.uuid && leer_('FACTURAS').some(f => up_(f.UUID) === up_(cfdi.uuid))) throw new Error('Esa factura ya estaba subida (mismo folio fiscal).');
+  const mes = fecha.slice(0, 7);
+  const dir = carpetaFact_(['Facturas', mes]);
+  const base = fecha + ' ' + limpiaNombre_(g.base) + (folio ? ' ' + limpiaNombre_(folio) : '');
+  const ids = { pdf: '', xml: '', otro: [] };
+  archivos.forEach(a => {
+    const ext = (a.nombre.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
+    const id = guardarArchivo_(dir, a, base + ext);
+    if (ext === '.pdf' && !ids.pdf) ids.pdf = id; else if (ext === '.xml' && !ids.xml) ids.xml = id; else ids.otro.push(id);
+  });
+  const id = id_();
+  conLock_(() => escribir_('FACTURAS', {
+    'ID': id, 'FECHA': fechaDeKey_(fecha), 'MES': "'" + mes, 'ID_CLIENTE': norm_(g.principal.ID_CLIENTE), 'CLIENTE': g.base, 'RFC': rfc, 'FOLIO': folio,
+    'TOTAL': r2_(total), 'UUID': cfdi ? cfdi.uuid : '', 'PDF_ID': ids.pdf, 'XML_ID': ids.xml, 'OTRO_ID': ids.otro.join(','), 'SUBIO': u.nombre, 'SUBIDO': new Date(), 'ESTATUS': 'NUEVA', 'NOTA': norm_(data.nota),
+  }));
+  log_(u.nombre, 'FACTURA', g.base + ' ' + folio + ' $' + total);
+  const correo = PropertiesService.getScriptProperties().getProperty('fact_correo');
+  if (correo && data.avisar !== false) {
+    try {
+      const adj = []; [ids.pdf, ids.xml].concat(ids.otro).filter(Boolean).forEach(x => adj.push(DriveApp.getFileById(x).getBlob()));
+      MailApp.sendEmail({ to: correo, subject: 'Factura ' + (folio || '') + ' · ' + nice_(g.base) + ' · ' + CONFIG.NEGOCIO,
+        body: 'Hola. Te comparto la factura que se le hizo a ' + nice_(g.base) + (rfc ? ' (RFC ' + rfc + ')' : '') + ' el ' + fecha + ' por $' + r2_(total).toLocaleString('es-MX') + '.\nTambién está en la app de El Diamante, en Facturas.\n\nOscar', attachments: adj });
+    } catch (e) {}
+  }
+  return { ok: true, id: id, cfdi: cfdi };
+}
+
+function apiFacturaEditar(token, id, cambios) {
+  const u = sesionFact_(token, true);
+  const f = leer_('FACTURAS').find(x => norm_(x.ID) === norm_(id)); if (!f) throw new Error('No encontré la factura.');
+  if (cambios && cambios.borrar) {
+    [f.PDF_ID, f.XML_ID].concat(norm_(f.OTRO_ID).split(',')).map(norm_).filter(Boolean).forEach(x => { try { DriveApp.getFileById(x).setTrashed(true); } catch (e) {} });
+    conLock_(() => hoja_('FACTURAS').deleteRow(f._fila));
+    log_(u.nombre, 'FACTURA BORRADA', norm_(f.CLIENTE) + ' ' + norm_(f.FOLIO));
+    return { ok: true };
+  }
+  const obj = {};
+  if (cambios.folio != null) obj.FOLIO = norm_(cambios.folio);
+  if (cambios.total != null) obj.TOTAL = r2_(num_(cambios.total));
+  if (cambios.nota != null) obj.NOTA = norm_(cambios.nota);
+  actualizar_('FACTURAS', f._fila, obj);
+  return { ok: true };
+}
+
+/** El contador marca como recibidas (o el dueño las regresa a nuevas). */
+function apiFacturaRecibida(token, ids, recibida) {
+  const u = sesionFact_(token);
+  ids = (ids || []).map(norm_);
+  conLock_(() => leer_('FACTURAS').forEach(f => {
+    if (ids.indexOf(norm_(f.ID)) < 0) return;
+    actualizar_('FACTURAS', f._fila, { 'ESTATUS': recibida === false ? 'NUEVA' : 'RECIBIDA', 'RECIBIO': recibida === false ? '' : u.nombre, 'FECHA_RECIBIDA': recibida === false ? '' : new Date() });
+  }));
+  return { ok: true };
+}
+
+/** Descarga un archivo (solo si es una constancia o factura registrada). */
+function apiFacturaArchivo(token, fileId) {
+  sesionFact_(token);
+  fileId = norm_(fileId);
+  const ok = leer_('FISCAL').some(f => norm_(f.CSF_ID) === fileId) ||
+    leer_('FACTURAS').some(f => [f.PDF_ID, f.XML_ID].concat(norm_(f.OTRO_ID).split(',')).map(norm_).indexOf(fileId) >= 0);
+  if (!fileId || !ok) throw new Error('Archivo no encontrado.');
+  const file = DriveApp.getFileById(fileId), b = file.getBlob();
+  return { nombre: file.getName(), tipo: b.getContentType(), b64: Utilities.base64Encode(b.getBytes()) };
+}
+
+function zipMes_(mes) {
+  const fs = leer_('FACTURAS').filter(f => mesFact_(f) === mes);
+  if (!fs.length) throw new Error('No hay facturas en ese mes.');
+  const blobs = [], usados = {};
+  const add = (id, carpeta) => { if (!id) return; try { const fl = DriveApp.getFileById(id); let n = fl.getName(); while (usados[carpeta + n]) n = '_' + n; usados[carpeta + n] = 1; blobs.push(fl.getBlob().setName(carpeta + n)); } catch (e) {} };
+  fs.forEach(f => { add(norm_(f.PDF_ID), 'PDF/'); add(norm_(f.XML_ID), 'XML/'); norm_(f.OTRO_ID).split(',').map(norm_).forEach(x => add(x, 'OTROS/')); });
+  const csv = [['FECHA', 'CLIENTE', 'RFC', 'FOLIO', 'UUID', 'TOTAL']].concat(fs.map(f => [diaKey_(f.FECHA), norm_(f.CLIENTE), norm_(f.RFC), norm_(f.FOLIO), norm_(f.UUID), num_(f.TOTAL)]))
+    .map(r => r.map(x => '"' + String(x).replace(/"/g, '""') + '"').join(',')).join('\r\n');
+  blobs.push(Utilities.newBlob('﻿' + csv, 'text/csv', 'Resumen ' + mes + '.csv'));
+  // constancias de los clientes del mes
+  const ids = {}; fs.forEach(f => { ids[norm_(f.ID_CLIENTE)] = 1; });
+  leer_('FISCAL').filter(f => ids[norm_(f.ID_CLIENTE)]).forEach(f => add(norm_(f.CSF_ID), 'CONSTANCIAS/'));
+  return { zip: Utilities.zip(blobs, 'Facturas El Diamante ' + mes + '.zip'), n: fs.length, total: fs.reduce((s, f) => s + num_(f.TOTAL), 0) };
+}
+
+function apiFacturasZip(token, mes) {
+  sesionFact_(token);
+  const z = zipMes_(norm_(mes));
+  return { nombre: z.zip.getName(), tipo: 'application/zip', b64: Utilities.base64Encode(z.zip.getBytes()) };
+}
+
+/** Manda por correo al contador todo el mes (PDF, XML, constancias y un resumen). */
+function apiFacturasEnviar(token, mes) {
+  const u = sesionFact_(token, true);
+  const correo = PropertiesService.getScriptProperties().getProperty('fact_correo');
+  if (!correo) throw new Error('Primero escribe el correo de tu contador.');
+  const z = zipMes_(norm_(mes));
+  MailApp.sendEmail({ to: correo, cc: CONFIG.CORREO_DUENO, subject: 'Facturas de ' + mes + ' · ' + CONFIG.NEGOCIO,
+    body: 'Hola. Te mando las ' + z.n + ' facturas de ' + mes + ' (total $' + r2_(z.total).toLocaleString('es-MX') + '), con sus XML, las constancias de situación fiscal de los clientes y un resumen en Excel (CSV).\n\nOscar', attachments: [z.zip] });
+  log_(u.nombre, 'FACTURAS AL CONTADOR', mes + ' → ' + correo);
+  return { ok: true, correo: correo, n: z.n };
+}
+
+/** Correo del contador y su acceso a la app (PIN propio, solo ve Facturas). */
+function apiContador(token, correo, nombre) {
+  const u = sesionFact_(token, true);
+  const props = PropertiesService.getScriptProperties();
+  correo = norm_(correo).toLowerCase();
+  if (correo && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) throw new Error('Revisa el correo.');
+  props.setProperty('fact_correo', correo);
+  let pin = '';
+  if (nombre) {
+    const us = leer_('USUARIOS_APP');
+    const ya = us.find(x => up_(x.ROL) === 'CONTADOR' && up_(x.ACTIVO) !== 'NO');
+    if (ya) pin = norm_(ya.PIN);
+    else {
+      do { pin = String(Math.floor(100000 + Math.random() * 900000)); } while (us.some(x => norm_(x.PIN) === pin));
+      conLock_(() => escribir_('USUARIOS_APP', { NOMBRE: up_(nombre), PIN: pin, ROL: 'CONTADOR', ID_TRABAJADOR: '', ACTIVO: 'SI' }));
+      log_(u.nombre, 'ACCESO CONTADOR', up_(nombre));
+    }
+  }
+  return { ok: true, pin: pin };
+}
+
+function apiContadorQuitar(token) {
+  const u = sesionFact_(token, true);
+  conLock_(() => leer_('USUARIOS_APP').filter(x => up_(x.ROL) === 'CONTADOR').forEach(x => actualizar_('USUARIOS_APP', x._fila, { ACTIVO: 'NO' })));
+  log_(u.nombre, 'ACCESO CONTADOR', 'quitado');
+  return { ok: true };
+}
+
+/** Ejecuta esta función una vez desde el editor para dar permiso a la app de guardar archivos en tu Drive. */
+function autorizarFacturas() {
+  hojaNueva_('FISCAL'); hojaNueva_('FACTURAS');
+  const f = carpetaFact_(['Constancias']); carpetaFact_(['Facturas']);
+  XmlService.parse('<a/>');
+  Logger.log('Listo: facturas activadas. Carpeta: ' + f.getParents().next().getUrl());
 }
 
 // ======================= APP INSTALABLE (GitHub Pages) =======================

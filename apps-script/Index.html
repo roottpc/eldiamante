@@ -379,6 +379,25 @@ i.cq-l{background:var(--ok);opacity:.85;top:3px;bottom:3px}
 .sb-m{display:flex;flex-direction:column;align-items:flex-end;gap:3px}.sb-m b{font:700 15px var(--mono)}.sb-m b.neg{color:#ff8fa3}
 .pill.p-nu{background:rgba(170,90,255,.15);color:#c99bff;border-color:rgba(170,90,255,.6)}.pill.p-caja{background:var(--soft);color:var(--muted)}
 .sb-e{display:flex;flex-direction:column;gap:8px;padding:0 0 14px 44px}
+.fx-h .btn svg{width:18px;height:18px;vertical-align:-3px}
+.fx-f{display:flex;flex-direction:column;gap:0;background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.fx-f .row{border:0;border-radius:0;background:none}
+.fx-f .row .pill{margin-top:4px}
+.fx-docs{display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 12px}
+.fx-doc{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:10px;padding:6px 10px;font-size:12.5px;font-weight:600}
+.fx-doc i{font-style:normal;font:700 10px var(--mono);letter-spacing:.06em;padding:2px 5px;border-radius:5px;background:#e5484d;color:#fff}
+.fx-doc.xml i{background:#3d8bfd}
+.fx-doc.fx-ok{border-color:var(--ok);color:var(--ok)}
+.fx-doc.grande{padding:12px 14px;font-size:14px;justify-content:flex-start}
+.row .fx-doc{padding:5px 7px}
+.fx-e{display:flex;flex-direction:column;gap:6px;padding:0 16px 14px;border-top:1px dashed var(--line);padding-top:10px}
+.fx-up{display:flex;align-items:center;justify-content:center;text-align:center;border:1.5px dashed var(--agua);border-radius:14px;padding:14px;color:var(--agua);font-weight:600;font-size:14px;cursor:pointer;background:var(--agua-soft)}
+.fx-up.big-up{min-height:96px;line-height:1.5}
+.fx-up small{color:var(--muted);font-weight:500}
+.fx-chk{display:flex;gap:10px;align-items:center;font-size:14px}
+.fx-chk input{width:20px;height:20px;accent-color:var(--agua)}
+.fx-a{text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;text-align:center}
+.fx-vacio svg{width:40px;height:40px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -590,7 +609,7 @@ function salir(silencioso) {
 
 async function cargar(silencioso) {
   if (!silencioso) loading(true, 'Cargando tu información…');
-  try { S.data = await call('apiInicio', S.token); S.user = S.data.user; store.set('diamante_user', JSON.stringify(S.user)); if (!AV.timer) iniciarAvisos(); setTimeout(enviarCola, 500); if (PUSH.soporta && !PUSH.revisado) { PUSH.revisado = true; revisarPush().then(() => { if (S.vista === 'inicio') render(); }); } }
+  try { S.data = await call('apiInicio', S.token); S.user = S.data.user; store.set('diamante_user', JSON.stringify(S.user)); if (S.data.contador) return; if (!AV.timer) iniciarAvisos(); setTimeout(enviarCola, 500); if (PUSH.soporta && !PUSH.revisado) { PUSH.revisado = true; revisarPush().then(() => { if (S.vista === 'inicio') render(); }); } }
   catch (e) { if (S.token) toast(e.message, true); }
   finally { loading(false); }
 }
@@ -631,7 +650,7 @@ function renderLogin() {
 /* ============ avisos: campana, sonido, vibración y alerta ============ */
 const AV = { lista: [], noLeidos: 0, visto: new Set(), timer: null, audio: null, primera: true };
 const ICON_CAMPANA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>';
-function campanaHTML() { return `<button class="bell ${AV.noLeidos ? 'hay' : ''}" data-go="avisos" aria-label="Avisos${AV.noLeidos ? ': ' + AV.noLeidos + ' sin ver' : ''}">${ICON_CAMPANA}${AV.noLeidos ? `<span class="cnt">${AV.noLeidos}</span>` : ''}</button>`; }
+function campanaHTML() { if (esContador()) return ''; return `<button class="bell ${AV.noLeidos ? 'hay' : ''}" data-go="avisos" aria-label="Avisos${AV.noLeidos ? ': ' + AV.noLeidos + ' sin ver' : ''}">${ICON_CAMPANA}${AV.noLeidos ? `<span class="cnt">${AV.noLeidos}</span>` : ''}</button>`; }
 function pintarCampana() { document.querySelectorAll('.bell').forEach(b => { b.outerHTML = campanaHTML(); }); document.title = (AV.noLeidos ? '(' + AV.noLeidos + ') ' : '') + 'El Diamante'; }
 function prepararAudio() { try { if (!AV.audio) AV.audio = new (window.AudioContext || window.webkitAudioContext)(); if (AV.audio.state === 'suspended') AV.audio.resume(); } catch (e) {} }
 function sonar(urgente) {
@@ -680,11 +699,11 @@ function marco(titulo, sub, cuerpo, conAtras) {
 }
 function renderNav() {
   const rol = S.user && S.user.rol;
-  const items = rol === 'RUTA' ? [['inicio', 'Inicio', ICON.home], ['ruta', 'Ruta', ICON.ruta]]
+  const items = rol === 'CONTADOR' ? [['facturas', 'Facturas', ICON_FACT]] : rol === 'RUTA' ? [['inicio', 'Inicio', ICON.home], ['ruta', 'Ruta', ICON.ruta]]
     : rol === 'PLANTA' ? [['inicio', 'Inicio', ICON.home], ['pedidos', 'Pedidos', ICON.pedidos]]
     : [['inicio', 'Inicio', ICON.home], ['ruta', 'Ruta', ICON.ruta], ['clientes', 'Clientes', ICON.clientes], ['pedidos', 'Pedidos', ICON.pedidos]];
   if (esDueno()) items.push(['panel', 'Mi panel', ICON.panel]);
-  const raizDe = { inicio: 1, ruta: 1, clientes: 1, pedidos: 1, panel: 1 };
+  const raizDe = { inicio: 1, ruta: 1, clientes: 1, pedidos: 1, panel: 1, facturas: rol === 'CONTADOR' ? 1 : 0 };
   const act = raizDe[S.vista] ? S.vista : (S.historial[0] && S.historial[0].vista) || 'inicio';
   $('#navInner').innerHTML = items.map(([v, t, i]) => `<button data-nav="${v}" ${act === v ? 'aria-current="page"' : ''}>${i}${t}${v === 'pedidos' && S.data && S.data.pedidos.length ? ` (${S.data.pedidos.length})` : ''}</button>`).join('');
   $('#nav').hidden = false;
@@ -705,6 +724,7 @@ const VISTAS = {};
 
 VISTAS.inicio = () => {
   const d = S.data, r = d.resumenHoy;
+  if (d.user.rol === 'CONTADOR') { S.vista = 'facturas'; return VISTAS.facturas(); }
   if (d.user.rol === 'PLANTA') return inicioPlanta(d);
   if (d.user.rol === 'RUTA') return inicioRuta(d);
   const deben = d.clientes.filter(c => c.saldo > 0.5).sort((a, b) => b.saldo - a.saldo).slice(0, 3);
@@ -729,7 +749,7 @@ VISTAS.inicio = () => {
       <button class="big alt" data-go="calidad">${ICON.calidad}Calidad del agua</button>
       ${esDueno() ? `<button class="big" data-go="control" style="grid-column:1/-1;flex-direction:row;align-items:center;min-height:0">${ICON.escudo}Cuadre del negocio${d.porConfirmar ? ` <span class="pill p-bad">${d.porConfirmar} por confirmar</span>` : ''}</button>` : ''}
       ${esDueno() ? `<button class="big" data-go="reporte">${ICON.corte}Ventas del día</button><button class="big alt" data-go="historial">${ICON.pedidos}Historial de ventas</button>` : ''}
-      ${esDueno() ? `<button class="big alt" data-go="agenda">${ICON.agenda}Agenda</button><button class="big alt" data-go="sobres">${ICON.sobres}Sobres del día</button><button class="big alt" data-go="prestamos" style="grid-column:1/-1;flex-direction:row;align-items:center;min-height:0">${ICON.prestamo}Préstamos a trabajadores</button>` : ''}
+      ${esDueno() ? `<button class="big alt" data-go="agenda">${ICON.agenda}Agenda</button><button class="big alt" data-go="sobres">${ICON.sobres}Sobres del día</button><button class="big alt" data-go="prestamos">${ICON.prestamo}Préstamos a trabajadores</button><button class="big alt" data-go="facturas">${ICON_FACT}Facturas</button>` : ''}
       <button class="big alt" data-go="avisos" style="grid-column:1/-1;flex-direction:row;align-items:center;min-height:0">${ICON_CAMPANA}Avisos del equipo${AV.noLeidos ? ` <span class="pill p-bad">${AV.noLeidos}</span>` : ''}</button>
     </div>
     ${d.pedidos.length ? `<div class="lbl">Pedidos por atender</div>${d.pedidos.slice(0, 3).map(p => filaPedido(p)).join('')}` : ''}
@@ -1927,6 +1947,221 @@ VISTAS.sobres = () => {
 VISTAS.salida.despues = () => { const i = $('#rSalida'); if (i) i.onchange = () => { S.regSel = i.value; render(); }; };
 VISTAS.separador.despues = () => { const i = $('#sepDia'); if (i) i.onchange = () => { if (!i.value) return; S.sep.dia = i.value; S.sep.data = null; render(); }; };
 
+/* ============ facturas (dueño y contador) ============ */
+const ICON_FACT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6M9 13h8M9 17h5"/></svg>';
+const esContador = () => S.user && S.user.rol === 'CONTADOR';
+const MES_N = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+const nomMes = m => { const [y, n] = m.split('-').map(Number); return MES_N[n - 1] + (y !== new Date().getFullYear() ? ' ' + y : ''); };
+function leerArchivo(file) {
+  return new Promise((ok, fail) => {
+    if (file.size > 8 * 1048576) return fail(new Error('El archivo ' + file.name + ' pesa más de 8 MB.'));
+    const r = new FileReader();
+    r.onload = () => ok({ nombre: file.name, tipo: file.type, b64: String(r.result).split(',')[1] || '' });
+    r.onerror = () => fail(new Error('No se pudo leer ' + file.name));
+    r.readAsDataURL(file);
+  });
+}
+function descargarB64(a) {
+  const bin = atob(a.b64), u8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  const url = URL.createObjectURL(new Blob([u8], { type: a.tipo || 'application/octet-stream' }));
+  const el = document.createElement('a'); el.href = url; el.download = a.nombre; document.body.appendChild(el); el.click(); el.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+async function bajarArchivo(id) { try { descargarB64(await run('apiFacturaArchivo', [S.token, id], 'Descargando…')); } catch (e) {} }
+/* lee un XML de factura en el celular para llenar el formulario solo */
+function leerCfdiLocal(texto) {
+  try {
+    const x = new DOMParser().parseFromString(texto, 'text/xml'), r = x.documentElement;
+    if (!r || r.getElementsByTagName('parsererror').length) return null;
+    const hijo = n => Array.from(r.children).find(c => c.localName === n);
+    const rec = hijo('Receptor');
+    return { folio: [r.getAttribute('Serie'), r.getAttribute('Folio')].filter(Boolean).join('-'), total: Number(r.getAttribute('Total')) || 0,
+      fecha: String(r.getAttribute('Fecha') || '').slice(0, 10), rfc: rec ? rec.getAttribute('Rfc') || '' : '', nombre: rec ? rec.getAttribute('Nombre') || '' : '' };
+  } catch (e) { return null; }
+}
+function cargarFacturas(msg) {
+  const Z = S.fac;
+  setTimeout(async () => { try { Z.data = await run('apiFacturas', [S.token], msg || 'Cargando facturas…'); if (!Z.mes) Z.mes = Z.data.mes; render(); } catch (e) {} }, 0);
+}
+
+VISTAS.facturas = () => {
+  if (!esDueno() && !esContador()) return marco('Facturas', '', '<div class="badbox">No tienes acceso a facturas.</div>', true);
+  S.fac = S.fac || { tab: 'facturas', mes: null, data: null, filtro: 'facturan', q: '', abierta: null };
+  const Z = S.fac, conAtras = !esContador();
+  if (!Z.data) { cargarFacturas(); return marco('Facturas', '', '<p class="muted">Cargando…</p>', conAtras); }
+  const D = Z.data;
+  const tabs = [['facturas', 'Facturas'], ['clientes', 'Clientes']].concat(esDueno() ? [['contador', 'Contador']] : []);
+  let cuerpo = `<div class="seg">${tabs.map(([k, t]) => `<button data-fxtab="${k}" aria-pressed="${Z.tab === k}">${t}</button>`).join('')}</div>`;
+  if (Z.tab === 'facturas') {
+    const meses = Array.from(new Set([D.mes].concat(D.meses.map(m => m.mes)))).sort().reverse();
+    const lista = D.facturas.filter(f => f.mes === Z.mes);
+    const tot = lista.reduce((s, f) => s + f.total, 0), nuevas = lista.filter(f => f.estatus === 'NUEVA').length;
+    cuerpo += `<div class="chips">${meses.slice(0, 8).map(m => `<button class="chip" data-fxmes="${m}" aria-pressed="${Z.mes === m}">${nice(nomMes(m))}</button>`).join('')}</div>
+      <section class="card fx-h"><div class="tot"><span class="muted">Facturado en ${nomMes(Z.mes)}</span><strong>${money(Math.round(tot))}</strong></div>
+        <small class="muted">${lista.length} factura${lista.length === 1 ? '' : 's'}${lista.length ? ' · ' + (nuevas ? nuevas + ' sin recibir por el contador' : 'todas recibidas por el contador') : ''}</small>
+        ${esDueno() ? `<button class="btn" data-fx="nueva">${ICON_FACT} Subir factura</button>` : ''}
+        ${lista.length ? `<div class="btnrow"><button class="btn sec small" style="flex:1" data-fx="zip">Descargar el mes (.zip)</button>${esDueno() ? `<button class="btn sec small" style="flex:1" data-fx="enviar">Mandar al contador</button>` : nuevas ? `<button class="btn sec small" style="flex:1" data-fx="recibirTodas">Marcar todas recibidas</button>` : ''}</div>` : ''}
+      </section>
+      ${lista.length ? lista.map(f => {
+        const ab = Z.abierta === f.id;
+        return `<div class="fx-f ${ab ? 'ab' : ''}"><button class="row" data-fxab="${f.id}"><div class="who"><b>${esc(nice(f.cliente))}</b><small>${f.folio ? 'Folio ' + esc(f.folio) + ' · ' : ''}${fmtDiaLargo(f.fecha)}${f.rfc ? ' · ' + esc(f.rfc) : ''}</small></div>
+          <div style="text-align:right"><b style="font-family:var(--mono)">${money(f.total)}</b><span class="pill ${f.estatus === 'RECIBIDA' ? 'p-ok' : 'p-warn'}">${f.estatus === 'RECIBIDA' ? 'Recibida' : 'Nueva'}</span></div></button>
+          <div class="fx-docs">${f.pdf ? `<button class="fx-doc" data-fxfile="${f.pdf}"><i>PDF</i>Factura</button>` : ''}${f.xml ? `<button class="fx-doc xml" data-fxfile="${f.xml}"><i>XML</i>Timbrado</button>` : ''}${(f.otro ? f.otro.split(',') : []).map(o => `<button class="fx-doc" data-fxfile="${o}"><i>+</i>Otro</button>`).join('')}
+            ${esContador() ? `<button class="fx-doc fx-ok" data-fxrec="${f.id}" data-v="${f.estatus !== 'RECIBIDA'}">${f.estatus === 'RECIBIDA' ? '↺ Quitar recibida' : '✓ Recibida'}</button>` : ''}</div>
+          ${ab && esDueno() ? `<div class="fx-e">${f.uuid ? `<small class="muted">Folio fiscal ${esc(f.uuid)}</small>` : ''}${f.nota ? `<small class="muted">${esc(f.nota)}</small>` : ''}<small class="muted">Subida el ${fmtDiaLargo(f.subido)}${f.estatus === 'RECIBIDA' ? ' · el contador ya la recibió' : ''}</small>
+            <button class="btn sec small" style="color:var(--bad)" data-fxborrar="${f.id}">Borrar esta factura</button></div>` : ''}</div>`;
+      }).join('') : `<div class="card" style="align-items:center;text-align:center"><span class="fx-vacio">${ICON_FACT}</span><p class="muted" style="margin:0">No hay facturas de ${nomMes(Z.mes)}.${esDueno() ? ' Sube el PDF y el XML de cada factura que hagas.' : ''}</p></div>`}`;
+  } else if (Z.tab === 'clientes') {
+    const q = Z.q.trim().toLowerCase();
+    let cl = D.clientes.filter(c => (Z.filtro === 'todos' || c.factura) && (!q || c.nombre.toLowerCase().indexOf(q) >= 0 || (c.rfc || '').toLowerCase().indexOf(q) >= 0));
+    const faltan = D.clientes.filter(c => c.factura && !c.csf).length;
+    cuerpo += `${esDueno() ? `<div class="seg">${[['facturan', 'Los que facturan'], ['todos', 'Todos']].map(([k, t]) => `<button data-fxfil="${k}" aria-pressed="${Z.filtro === k}">${t}</button>`).join('')}</div>` : ''}
+      <input class="inp" id="fxQ" placeholder="Buscar cliente o RFC" value="${esc(Z.q)}" autocomplete="off">
+      ${faltan ? `<div class="warnbox">${faltan} cliente${faltan === 1 ? '' : 's'} que factura${faltan === 1 ? '' : 'n'} sin constancia de situación fiscal.</div>` : ''}
+      ${cl.length ? cl.map(c => {
+        const porFact = c.factura ? Math.max(0, c.ventasMes - c.facturadoMes) : 0;
+        return `<button class="row" data-fxcli="${c.id}"><div class="who"><b>${esc(nice(c.nombre))}</b><small>${c.rfc ? esc(c.rfc) : 'Sin RFC'}${c.factura && c.ventasMes ? ' · ' + nomMes(D.mes) + ': vendido ' + money(Math.round(c.ventasMes)) + ', facturado ' + money(Math.round(c.facturadoMes)) : ''}</small></div>
+          ${c.csf ? '<span class="pill p-ok">Constancia</span>' : c.factura ? '<span class="pill p-bad">Falta constancia</span>' : '<span class="pill p-info">Agregar datos</span>'}${porFact > 1 && esDueno() ? '' : ''}</button>`;
+      }).join('') : `<p class="muted">${Z.filtro === 'facturan' && !q ? 'Todavía no tienes clientes con datos fiscales. Toca “Todos” y elige uno.' : 'Sin resultados.'}</p>`}`;
+  } else {
+    const ct = D.contador[0];
+    cuerpo += `<section class="card"><div class="lbl" style="margin:0">Correo de tu contador</div>
+        <input class="inp" id="fxCorreo" type="email" inputmode="email" placeholder="contador@correo.com" value="${esc(D.correoContador)}">
+        <small class="muted">Le llega cada factura que subas, con su PDF y XML. Y con “Mandar al contador” le llega todo el mes en un .zip con las constancias y un resumen.</small>
+        <button class="btn sec small" data-fx="correo">Guardar correo</button></section>
+      <section class="card"><div class="lbl" style="margin:0">Acceso a la app</div>
+        ${ct ? `<div class="tot"><span>${esc(nice(ct.nombre))}</span><b>PIN ${esc(ct.pin)}</b></div><small class="muted">Entra con este PIN y solo ve Facturas: puede descargar todo y marcar lo que ya recibió.</small>
+          <a class="btn fx-a" href="https:\/\/wa.me/?text=${encodeURIComponent('Hola. Aquí puedes ver y descargar las facturas de Purificadora El Diamante: https:\/\/roottpc.github.io/eldiamante/ · Tu PIN es ' + ct.pin + '. Desde el celular la puedes instalar como app.')}" target="_blank" rel="noopener">${ICON_WA} Mandarle el acceso por WhatsApp</a>
+          <button class="btn sec small" style="color:var(--bad)" data-fx="quitarContador">Quitarle el acceso</button>`
+        : `<small class="muted">Dale un PIN a tu contador para que entre a la app y vea solo este apartado.</small><input class="inp" id="fxNombre" placeholder="Nombre del contador" autocomplete="off"><button class="btn" data-fx="darAcceso">Darle acceso</button>`}</section>
+      ${D.carpeta ? `<a class="btn sec small fx-a" style="align-self:center" href="${esc(D.carpeta)}" target="_blank" rel="noopener">Abrir la carpeta en Google Drive</a>` : ''}`;
+  }
+  return marco('Facturas', esContador() ? 'Purificadora El Diamante' : 'Constancias y facturas para tu contador', cuerpo, conAtras);
+};
+VISTAS.facturas.despues = () => {
+  const q = $('#fxQ'); if (q) q.oninput = () => { S.fac.q = q.value; const p = q.selectionStart; render(); const n = $('#fxQ'); n.focus(); n.setSelectionRange(p, p); };
+};
+
+VISTAS.fiscal = p => {
+  const Z = S.fac; if (!Z || !Z.data) return VISTAS.facturas();
+  const c = Z.data.clientes.find(x => x.id === p.id); if (!c) return VISTAS.facturas();
+  const D = Z.data, ro = !esDueno();
+  const sel = (id, lista, val) => `<select class="inp" id="${id}" ${ro ? 'disabled' : ''}><option value="">Elige…</option>${lista.map(([k, t]) => `<option value="${k}"${val === k ? ' selected' : ''}>${k} · ${esc(t)}</option>`).join('')}</select>`;
+  const campo = (id, lbl, val, extra) => `<label class="f">${lbl}<input class="inp" id="${id}" value="${esc(val)}" ${ro ? 'readonly' : ''} ${extra || ''}></label>`;
+  const facts = D.facturas.filter(f => f.idCliente === c.id).slice(0, 6);
+  return marco(nice(c.nombre), c.csf ? 'Constancia del ' + fmtDiaLargo(c.csfFecha) : 'Sin constancia de situación fiscal', `
+    <section class="card">
+      <div class="lbl" style="margin:0">Constancia de situación fiscal</div>
+      ${c.csf ? `<button class="fx-doc grande" data-fxfile="${c.csf}"><i>CSF</i>Ver o descargar la constancia</button>` : '<div class="warnbox" style="margin:0">Todavía no hay constancia de este cliente.</div>'}
+      ${ro ? '' : `<label class="fx-up"><input type="file" id="fxCsf" accept="application/pdf,image/*" hidden><span id="fxCsfTxt">${c.csf ? 'Cambiar constancia (PDF o foto)' : 'Subir constancia (PDF o foto)'}</span></label>`}
+    </section>
+    <section class="card">
+      <div class="lbl" style="margin:0">Datos para facturar</div>
+      ${campo('fxRfc', 'RFC', c.rfc, 'autocapitalize="characters" maxlength="13"')}
+      ${campo('fxRazon', 'Razón social (como viene en la constancia)', c.razon, 'autocapitalize="characters"')}
+      ${campo('fxCp', 'Código postal', c.cp, 'inputmode="numeric" maxlength="5"')}${campo('fxMail', 'Correo para mandarle la factura', c.correo, 'type="email" inputmode="email"')}
+      <label class="f">Régimen fiscal${sel('fxReg', D.regimenes, c.regimen)}</label>
+      <label class="f">Uso del CFDI${sel('fxUso', D.usos, c.uso)}</label>
+      ${campo('fxNota', 'Nota para el contador', c.nota, 'placeholder="Ej. factura cada fin de mes, todo en una sola"')}
+      ${ro ? '' : '<button class="btn" data-fx="guardarFiscal" data-id="' + c.id + '">Guardar datos</button>'}
+    </section>
+    ${facts.length ? `<div class="lbl">Últimas facturas</div>${facts.map(f => `<div class="row"><div class="who"><b>${f.folio ? 'Folio ' + esc(f.folio) : 'Sin folio'}</b><small>${fmtDiaLargo(f.fecha)}</small></div><b style="font-family:var(--mono)">${money(f.total)}</b>${f.pdf ? `<button class="fx-doc" data-fxfile="${f.pdf}"><i>PDF</i></button>` : ''}${f.xml ? `<button class="fx-doc xml" data-fxfile="${f.xml}"><i>XML</i></button>` : ''}</div>`).join('')}` : ''}
+    ${esDueno() ? `<button class="btn sec" data-fx="nueva" data-id="${c.id}">Subir factura de este cliente</button>` : ''}`, true);
+};
+VISTAS.fiscal.despues = () => {
+  const i = $('#fxCsf'); if (i) i.onchange = () => { const f = i.files[0]; $('#fxCsfTxt').textContent = f ? '✓ ' + f.name + ' (se guarda al tocar Guardar datos)' : 'Subir constancia'; };
+  const r = $('#fxRfc'); if (r) r.oninput = () => { const p = r.selectionStart; r.value = r.value.toUpperCase().replace(/\s/g, ''); r.setSelectionRange(p, p); };
+};
+
+VISTAS.facturaNueva = p => {
+  const Z = S.fac; if (!Z || !Z.data) return VISTAS.facturas();
+  const N = Z.nueva = Z.nueva || { id: p.id || '', folio: '', total: '', fecha: S.data.hoy, nota: '', archivos: [], cfdi: null, avisar: true };
+  const D = Z.data;
+  const fact = D.clientes.filter(c => c.factura), otros = D.clientes.filter(c => !c.factura);
+  const opt = c => `<option value="${c.id}"${N.id === c.id ? ' selected' : ''}>${esc(nice(c.nombre))}${c.rfc ? ' · ' + esc(c.rfc) : ''}</option>`;
+  return marco('Subir factura', 'PDF y XML de la factura timbrada', `
+    <section class="card">
+      <label class="fx-up big-up"><input type="file" id="fxFiles" accept=".pdf,.xml,application/pdf,text/xml,application/xml" multiple hidden>
+        <span>${N.archivos.length ? N.archivos.map(a => '✓ ' + esc(a.nombre)).join('<br>') : '<b>Elegir archivos</b><br><small>El PDF y el XML (puedes elegir los dos juntos)</small>'}</span></label>
+      ${N.cfdi ? `<div class="okbox" style="margin:0">Leí el XML: ${N.cfdi.folio ? 'folio ' + esc(N.cfdi.folio) + ', ' : ''}${money(N.cfdi.total)}${N.cfdi.nombre ? ' a ' + esc(N.cfdi.nombre) : ''}.</div>` : ''}
+      ${N.archivos.length && !N.archivos.some(a => /\.xml$/i.test(a.nombre)) ? '<div class="warnbox" style="margin:0">Falta el XML. Al contador le sirve más que el PDF: súbelo si lo tienes.</div>' : ''}
+    </section>
+    <section class="card">
+      <label class="f">Cliente<select class="inp" id="fxCli"><option value="">Elige el cliente…</option>${fact.length ? `<optgroup label="Facturan">${fact.map(opt).join('')}</optgroup>` : ''}<optgroup label="Otros clientes">${otros.map(opt).join('')}</optgroup></select></label>
+      <div class="grid2"><label class="f">Folio<input class="inp" id="fxFolio" value="${esc(N.folio)}" placeholder="Ej. A-125"></label><label class="f">Total<input class="inp" id="fxTotal" inputmode="decimal" value="${esc(N.total)}" placeholder="$0"></label></div>
+      <label class="f">Fecha de la factura<input class="inp" id="fxFecha" type="date" value="${esc(N.fecha)}"></label>
+      <label class="f">Nota (opcional)<input class="inp" id="fxNotaF" value="${esc(N.nota)}" placeholder="Ej. ventas del 1 al 15 de octubre"></label>
+      ${D.correoContador ? `<label class="fx-chk"><input type="checkbox" id="fxAvisar" ${N.avisar ? 'checked' : ''}> Mandársela a mi contador por correo (${esc(D.correoContador)})</label>` : ''}
+    </section>
+    <button class="btn" data-fx="subir">Guardar factura</button>`, true);
+};
+VISTAS.facturaNueva.despues = () => {
+  const N = S.fac.nueva, keep = () => { N.id = $('#fxCli').value; N.folio = $('#fxFolio').value; N.total = $('#fxTotal').value; N.fecha = $('#fxFecha').value; N.nota = $('#fxNotaF').value; const a = $('#fxAvisar'); if (a) N.avisar = a.checked; };
+  ['#fxCli', '#fxFolio', '#fxTotal', '#fxFecha', '#fxNotaF', '#fxAvisar'].forEach(s => { const e = $(s); if (e) e.onchange = keep; });
+  const f = $('#fxFiles');
+  if (f) f.onchange = async () => {
+    keep();
+    try {
+      loading(true, 'Leyendo archivos…');
+      const nuevos = await Promise.all(Array.from(f.files).map(leerArchivo));
+      nuevos.forEach(a => { N.archivos = N.archivos.filter(x => x.nombre.split('.').pop().toLowerCase() !== a.nombre.split('.').pop().toLowerCase()); N.archivos.push(a); });
+      const x = N.archivos.find(a => /\.xml$/i.test(a.nombre));
+      if (x) {
+        const bin = atob(x.b64), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+        const c = leerCfdiLocal(new TextDecoder('utf-8').decode(u8));
+        if (c) {
+          N.cfdi = c; if (c.folio) N.folio = c.folio; if (c.total) N.total = String(c.total); if (c.fecha) N.fecha = c.fecha;
+          const m = c.rfc && S.fac.data.clientes.find(k => (k.rfc || '').toUpperCase() === c.rfc.toUpperCase());
+          if (m) N.id = m.id;
+        }
+      }
+    } catch (e) { toast(e.message, true); }
+    finally { loading(false); render(); }
+  };
+};
+
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b || !S.fac) return;
+  const d = b.dataset, Z = S.fac;
+  try {
+    if (d.fxtab) { Z.tab = d.fxtab; render(); }
+    else if (d.fxmes) { Z.mes = d.fxmes; Z.abierta = null; render(); }
+    else if (d.fxfil) { Z.filtro = d.fxfil; render(); }
+    else if (d.fxab) { Z.abierta = Z.abierta === d.fxab ? null : d.fxab; render(); }
+    else if (d.fxcli) ir('fiscal', { id: d.fxcli });
+    else if (d.fxfile) await bajarArchivo(d.fxfile);
+    else if (d.fxrec) { await run('apiFacturaRecibida', [S.token, [d.fxrec], d.v === 'true'], 'Guardando…'); const f = Z.data.facturas.find(x => x.id === d.fxrec); if (f) f.estatus = d.v === 'true' ? 'RECIBIDA' : 'NUEVA'; render(); }
+    else if (d.fxborrar) { if (!confirm('¿Borrar esta factura y sus archivos?')) return; await run('apiFacturaEditar', [S.token, d.fxborrar, { borrar: true }], 'Borrando…'); Z.data = null; Z.abierta = null; render(); toast('Factura borrada'); }
+    else if (d.fx === 'nueva') { Z.nueva = null; ir('facturaNueva', { id: d.id || '' }); }
+    else if (d.fx === 'zip') descargarB64(await run('apiFacturasZip', [S.token, Z.mes], 'Juntando las facturas de ' + nomMes(Z.mes) + '…'));
+    else if (d.fx === 'enviar') {
+      if (!Z.data.correoContador) { Z.tab = 'contador'; render(); return toast('Primero escribe el correo de tu contador', true); }
+      if (!confirm('¿Mandar las facturas de ' + nomMes(Z.mes) + ' a ' + Z.data.correoContador + '?')) return;
+      const r = await run('apiFacturasEnviar', [S.token, Z.mes], 'Enviando al contador…'); toast('Se mandaron ' + r.n + ' facturas a ' + r.correo);
+    }
+    else if (d.fx === 'recibirTodas') { const ids = Z.data.facturas.filter(f => f.mes === Z.mes && f.estatus === 'NUEVA').map(f => f.id); await run('apiFacturaRecibida', [S.token, ids, true], 'Guardando…'); Z.data.facturas.forEach(f => { if (ids.indexOf(f.id) >= 0) f.estatus = 'RECIBIDA'; }); render(); toast('Marcadas como recibidas'); }
+    else if (d.fx === 'correo') { await run('apiContador', [S.token, $('#fxCorreo').value, ''], 'Guardando…'); Z.data.correoContador = $('#fxCorreo').value.trim().toLowerCase(); toast('Correo guardado'); render(); }
+    else if (d.fx === 'darAcceso') { const n = $('#fxNombre').value.trim(); if (!n) return toast('Escribe el nombre del contador', true); await run('apiContador', [S.token, $('#fxCorreo').value, n], 'Creando su acceso…'); Z.data = null; render(); }
+    else if (d.fx === 'quitarContador') { if (!confirm('¿Quitarle el acceso a la app a tu contador?')) return; await run('apiContadorQuitar', [S.token], 'Guardando…'); Z.data = null; render(); }
+    else if (d.fx === 'guardarFiscal') {
+      const i = $('#fxCsf'), file = i && i.files[0];
+      const arch = file ? await leerArchivo(file) : null;
+      const datos = { rfc: $('#fxRfc').value, razon: $('#fxRazon').value, cp: $('#fxCp').value, correo: $('#fxMail').value, regimen: $('#fxReg').value, uso: $('#fxUso').value, nota: $('#fxNota').value };
+      await run('apiFiscalGuardar', [S.token, d.id, datos, arch], arch ? 'Subiendo la constancia…' : 'Guardando…');
+      toast('Datos guardados'); Z.data = null; Z.tab = 'clientes'; atras(); cargarFacturas('Actualizando…');
+    }
+    else if (d.fx === 'subir') {
+      const N = Z.nueva; VISTAS.facturaNueva.despues && (N.id = $('#fxCli').value, N.folio = $('#fxFolio').value, N.total = $('#fxTotal').value, N.fecha = $('#fxFecha').value, N.nota = $('#fxNotaF').value, $('#fxAvisar') && (N.avisar = $('#fxAvisar').checked));
+      if (!N.archivos.length) return toast('Elige el PDF o el XML', true);
+      if (!N.id) return toast('Elige el cliente', true);
+      if (!(Number(N.total) > 0)) return toast('Escribe el total', true);
+      const r = await run('apiFacturaSubir', [S.token, { idCliente: N.id, folio: N.folio, total: N.total, fecha: N.fecha, nota: N.nota, avisar: N.avisar }, N.archivos], 'Subiendo la factura…');
+      Z.nueva = null; Z.data = null; Z.tab = 'facturas'; Z.mes = (N.fecha || S.data.hoy).slice(0, 7); atras(); toast('Factura guardada' + (Z && N.avisar && r ? '' : '')); cargarFacturas('Actualizando…');
+    }
+  } catch (err) {}
+});
+
 /* ============ acciones ============ */
 document.addEventListener('click', async e => {
   const b = e.target.closest('button,[data-go]');
@@ -1946,6 +2181,7 @@ document.addEventListener('click', async e => {
     if (d.go === 'control') S.control = { periodo: 'semana', data: null, desde: '', hasta: '' };
     if (d.go === 'reporte') S.rep = null;
     if (d.go === 'sobres') S.sob = null;
+    if (d.go === 'facturas') S.fac = null;
     ir(d.go, { id: d.id, pedido: d.pedido, modo: d.modo }); return;
   }
   if (d.mapa) { S.mapa.tab = d.mapa; if (d.mapa === 'vendido') S.mapa.vendido = null; render(); return; }
