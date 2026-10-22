@@ -407,6 +407,50 @@ i.cq-l{background:var(--ok);opacity:.85;top:3px;bottom:3px}
 .fx-chk input{width:20px;height:20px;accent-color:var(--agua)}
 .fx-a{text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;text-align:center}
 .fx-vacio svg{width:40px;height:40px;color:var(--muted)}
+.iv-hero{display:flex;align-items:center;gap:14px;border-radius:var(--r);padding:18px;border:1px solid var(--line);background:var(--panel)}
+.iv-hero>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.iv-hero b{font-size:19px;letter-spacing:-.01em}
+.iv-hero small{color:var(--muted);font-size:13px;line-height:1.35}
+.iv-hero-n{font:700 34px var(--mono);letter-spacing:-.04em;white-space:nowrap}
+.iv-hero-n small{font-size:13px;font-family:inherit;letter-spacing:0;color:var(--muted);margin-left:2px}
+.iv-h-ok{border-color:rgba(0,200,255,.45);box-shadow:0 0 28px rgba(0,200,255,.12) inset}.iv-h-ok .iv-hero-n{color:var(--agua);text-shadow:0 0 16px rgba(0,200,255,.5)}
+.iv-h-warn{border-color:rgba(255,194,71,.5);background:linear-gradient(135deg,var(--warn-soft),var(--panel))}.iv-h-warn .iv-hero-n{color:var(--warn)}
+.iv-h-bad{border-color:rgba(255,84,114,.55);background:linear-gradient(135deg,var(--bad-soft),var(--panel))}.iv-h-bad .iv-hero-n{color:var(--bad)}
+.iv-h-sin .iv-hero-n{color:var(--muted)}
+.iv-g{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.iv-t{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:14px 10px 12px;border-radius:20px;border:1px solid var(--line);background:var(--panel);color:var(--ink);text-align:center;transition:transform .12s,border-color .15s}
+.iv-t:active{transform:scale(.97)}
+.iv-t.ab{border-color:var(--agua);box-shadow:0 0 18px rgba(0,200,255,.25)}
+.iv-tq{width:78px;height:96px;margin-bottom:4px;overflow:visible}
+.iv-ola{animation:ivola 4s linear infinite}
+@keyframes ivola{from{transform:translateX(0)}to{transform:translateX(32px)}}
+@media (prefers-reduced-motion:reduce){.iv-ola{animation:none}}
+.iv-n{font:700 26px var(--mono);letter-spacing:-.03em;line-height:1.1}
+.iv-nm{font-weight:700;font-size:14px}
+.iv-d{font-size:12px;color:var(--muted)}
+.iv-p{margin-top:6px}
+.iv-ok .iv-p{color:var(--agua);background:var(--agua-soft)} .iv-ok .iv-n{color:var(--agua)}
+.iv-pronto .iv-p{color:var(--warn);background:var(--warn-soft)} .iv-pronto .iv-n{color:var(--warn)}
+.iv-pedir .iv-p,.iv-agotado .iv-p{color:var(--bad);background:var(--bad-soft)} .iv-pedir .iv-n,.iv-agotado .iv-n{color:var(--bad)}
+.iv-pedir,.iv-agotado{border-color:rgba(255,84,114,.45)}
+.iv-sin .iv-p{color:var(--muted)} .iv-sin .iv-n{color:var(--muted)}
+.iv-det{border-color:var(--c);gap:10px}
+.iv-det .iv-p{margin:0;color:var(--c)}
+.iv-cuenta{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;align-items:center;gap:4px;text-align:center}
+.iv-cuenta>div{display:flex;flex-direction:column;background:var(--soft);border-radius:12px;padding:8px 2px}
+.iv-cuenta small{font-size:10.5px;color:var(--muted)}
+.iv-cuenta b{font:700 16px var(--mono)}
+.iv-cuenta i{font-style:normal;color:var(--muted);font-weight:700}
+.iv-cuenta .iv-hay{background:color-mix(in srgb,var(--c) 18%,transparent)} .iv-cuenta .iv-hay b{color:var(--c)}
+.iv-hist{display:flex;flex-direction:column;gap:2px;border-top:1px dashed var(--line);padding-top:8px}
+.iv-hist div{display:grid;grid-template-columns:1fr auto 96px;gap:8px;font-size:12.5px;align-items:baseline}
+.iv-hist span{color:var(--muted)} .iv-hist b{font-family:var(--mono)} .iv-hist em{font-style:normal;text-align:right;font-weight:700;font-family:var(--mono)}
+.iv-hist em.bad{color:var(--bad)} .iv-hist em.ok{color:var(--ok)}
+.iv-c{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:10px 12px}
+.iv-ci svg{width:34px;height:34px}
+.iv-cn{flex:1;display:flex;flex-direction:column;min-width:0}.iv-cn b{font-size:15px}.iv-cn small{color:var(--muted);font-size:12px}
+.iv-btn{display:flex;align-items:center;justify-content:center;gap:8px}.iv-btn svg{width:20px;height:20px;flex:none}
+.iv-c .inp{width:104px;text-align:center;font:700 20px var(--mono);padding:10px}
 </style>
 </head>
 <body>
@@ -756,6 +800,7 @@ VISTAS.inicio = () => {
       <button class="big alt" data-go="salida">${ICON.salida}Salida / regreso</button>
       <button class="big alt" data-go="corte">${ICON.corte}Corte del día</button>
       <button class="big alt" data-go="calidad">${ICON.calidad}Calidad del agua</button>
+      <button class="big" data-go="inventario" style="grid-column:1/-1;flex-direction:row;align-items:center;min-height:0">${ICON_INV}Inventario${d.inventarioAlerta ? ` <span class="pill p-bad">${d.inventarioAlerta}</span>` : ''}</button>
       ${esDueno() ? `<button class="big" data-go="control" style="grid-column:1/-1;flex-direction:row;align-items:center;min-height:0">${ICON.escudo}Cuadre del negocio${d.porConfirmar ? ` <span class="pill p-bad">${d.porConfirmar} por confirmar</span>` : ''}</button>` : ''}
       ${esDueno() ? `<button class="big" data-go="reporte">${ICON.corte}Ventas del día</button><button class="big alt" data-go="historial">${ICON.pedidos}Historial de ventas</button>` : ''}
       ${esDueno() ? `<button class="big alt" data-go="agenda">${ICON.agenda}Agenda</button><button class="big alt" data-go="sobres">${ICON.sobres}Sobres del día</button><button class="big alt" data-go="prestamos">${ICON.prestamo}Préstamos a trabajadores</button><button class="big alt" data-go="facturas">${ICON_FACT}Facturas</button>` : ''}
@@ -1766,6 +1811,7 @@ function inicioPlanta(d) {
     <button class="big uno" data-go="venta" data-id="${d.idPlanta}">${ICON.venta}Registrar venta</button>
     <button class="big uno" data-go="salida" data-modo="salida">${ICON.salida}Registrar salida a ruta</button>
     <button class="big uno" data-go="salida" data-modo="regreso">${ICON.planta}Registrar regreso a planta</button>
+    <button class="big uno" data-go="inventario">${ICON_INV}Inventario${d.inventarioAlerta ? ` <span class="pill p-bad">${d.inventarioAlerta}</span>` : ''}</button>
     ${envasesHTML(d.envases, 'Garrafones de hoy')}
     ${d.prestamo ? prestamoHTML(d.prestamo) : ''}`);
 }
@@ -1955,6 +2001,110 @@ VISTAS.sobres = () => {
 
 VISTAS.salida.despues = () => { const i = $('#rSalida'); if (i) i.onchange = () => { S.regSel = i.value; render(); }; };
 VISTAS.separador.despues = () => { const i = $('#sepDia'); if (i) i.onchange = () => { if (!i.value) return; S.sep.dia = i.value; S.sep.data = null; render(); }; };
+
+/* ============ inventario (planta y dueño) ============ */
+const ICON_INV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>';
+const INV_ICO = {
+  'TAPAS': '<path d="M7 11h18v5a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2z"/><path d="M9 11V9.5A1.5 1.5 0 0 1 10.5 8h11A1.5 1.5 0 0 1 23 9.5V11M10 14h12"/>',
+  'ETIQUETAS': '<path d="M6 8h13l7 8-7 8H6z"/><circle cx="11" cy="16" r="1.8"/>',
+  'SELLOS': '<path d="M16 5l9 3.5v7c0 5-3.8 8.8-9 10-5.2-1.2-9-5-9-10v-7z"/><path d="M12 15.5l3 3 5.5-6"/>',
+  'GALON': '<path d="M11 5h7v3h-7z"/><path d="M9 8h11l2 4v12a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V12z"/><path d="M20 12h2.5a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H22"/>',
+  'BOTELLA 1 LT': '<path d="M13.5 3h5v3h-5z"/><path d="M13 6h6l1 4c1.5 1 2 2.2 2 4v11a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2V14c0-1.8.5-3 2-4z"/><path d="M10 17h12"/>',
+  'BOTELLA 1/2 LT': '<path d="M14 8h4v2.5h-4z"/><path d="M13.5 10.5h5l1 3c1 .7 1.5 1.7 1.5 3V25a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-8.5c0-1.3.5-2.3 1.5-3z"/>',
+  'GARRAFON': '<path d="M13 3h6v3h-6z"/><path d="M12 6h8v2c3 .8 5 2.6 5 5.5V25a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V13.5C7 10.6 9 8.8 12 8z"/><path d="M7 15h18M7 20h18"/>',
+};
+const INV_COL = { ok: 'var(--agua)', pronto: 'var(--warn)', pedir: 'var(--bad)', agotado: 'var(--bad)', sin: 'var(--muted)' };
+const INV_TXT = { ok: 'Bien', pronto: 'Pedir pronto', pedir: 'Pedir ya', agotado: 'Se acabó', sin: 'Falta contar' };
+function tanqueInv(it, i) {
+  const col = INV_COL[it.nivel], h = 64, y = 8 + h * (1 - it.lleno), gid = 'ivg' + i;
+  return `<svg class="iv-tq" viewBox="0 0 64 80" aria-hidden="true"><defs><clipPath id="${gid}"><rect x="6" y="8" width="52" height="${h}" rx="14"/></clipPath>
+    <linearGradient id="${gid}l" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".95"/><stop offset="1" stop-color="${col}" stop-opacity=".35"/></linearGradient></defs>
+    <rect x="6" y="8" width="52" height="${h}" rx="14" fill="var(--soft)" stroke="var(--line)"/>
+    <g clip-path="url(#${gid})">${it.lleno > 0 ? `<path class="iv-ola" d="M-30 ${y} q8 -4 16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 V90 H-30z" fill="url(#${gid}l)"/>` : ''}</g>
+    <g transform="translate(16 24)" fill="none" stroke="${it.lleno > 0.55 ? '#03141c' : col}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".9"><g transform="scale(1)"><g transform="translate(0 0) scale(1)">${INV_ICO[it.id] || ''}</g></g></g></svg>`;
+}
+function fmtCant(n) { return Number(n || 0).toLocaleString('es-MX'); }
+
+VISTAS.inventario = () => {
+  if (!esDueno() && S.user.rol !== 'PLANTA') return marco('Inventario', '', '<div class="badbox">El inventario lo llevan planta y Oscar.</div>', true);
+  S.inv = S.inv || { data: null, abierto: null };
+  const Z = S.inv;
+  if (!Z.data) {
+    setTimeout(async () => { try { Z.data = await run('apiInventario', [S.token], 'Revisando el inventario…'); render(); } catch (e) {} }, 0);
+    return marco('Inventario', '', '<p class="muted">Cargando…</p>', true);
+  }
+  const D = Z.data, its = D.items;
+  const malos = its.filter(i => i.nivel === 'pedir' || i.nivel === 'agotado'), pronto = its.filter(i => i.nivel === 'pronto'), sin = its.filter(i => i.nivel === 'sin');
+  const tono = malos.length ? 'bad' : pronto.length ? 'warn' : sin.length === its.length ? 'sin' : 'ok';
+  const titulo = sin.length === its.length ? 'Haz el primer conteo' : malos.length ? (malos.length === 1 ? 'Hay que pedir ' + malos[0].nombre.toLowerCase() : 'Hay que pedir ' + malos.length + ' cosas') : pronto.length ? 'Todo alcanza, pero pide pronto' : 'Todo en orden';
+  const sub = sin.length === its.length ? 'Cuenta lo que hay en planta. Desde ahí la app descuenta sola lo que se vende y suma lo que se compra.'
+    : malos.concat(pronto).map(i => i.nombre + (i.alcanza != null ? ' (' + i.alcanza + ' días)' : '')).join(' · ') || 'Hay insumo para más de 10 días.';
+  const tile = (it, i) => {
+    const ab = Z.abierto === it.id;
+    return `<button class="iv-t iv-${it.nivel} ${ab ? 'ab' : ''}" data-inv="${it.id}" aria-expanded="${ab}">
+      ${tanqueInv(it, i)}
+      <span class="iv-n">${it.stock == null ? '—' : fmtCant(Math.max(0, it.stock))}</span>
+      <span class="iv-nm">${esc(it.nombre)}</span>
+      <span class="iv-d">${it.stock == null ? 'Sin contar' : it.alcanza != null ? (it.alcanza >= 60 ? 'Alcanza +2 meses' : 'Alcanza ' + it.alcanza + (it.alcanza === 1 ? ' día' : ' días')) : 'Casi no se usa'}</span>
+      <span class="pill iv-p">${INV_TXT[it.nivel]}</span></button>`;
+  };
+  const det = it => {
+    if (!it) return '';
+    const c = it.conteo;
+    return `<section class="card iv-det" style="--c:${INV_COL[it.nivel]}">
+      <div class="tot"><b style="font-family:inherit;font-size:17px">${esc(it.nombre)} <small class="muted" style="font-weight:500">${esc(it.detalle)}</small></b><span class="pill iv-p">${INV_TXT[it.nivel]}</span></div>
+      ${c ? `<div class="iv-cuenta">
+        <div><small>Contadas</small><b>${fmtCant(c.cantidad)}</b><small>${fmtDiaLargo(c.dia)}</small></div><i>+</i>
+        <div><small>Entraron</small><b>${fmtCant(it.entro)}</b><small>compras</small></div><i>−</i>
+        <div><small>Se usaron</small><b>${fmtCant(it.usado)}</b><small>${it.id === 'GARRAFON' ? 'rotos' : 'en ventas'}</small></div><i>=</i>
+        <div class="iv-hay"><small>Hay</small><b>${fmtCant(it.stock)}</b><small>${esc(it.unidad)}</small></div></div>` : '<p class="muted" style="margin:0">Todavía no se ha contado. Toca “Contar inventario”.</p>'}
+      ${it.diario ? `<small class="muted">Se usan unas ${fmtCant(Math.round(it.diario))} ${esc(it.unidad)} por día.${esDueno() && it.pedir ? ' Para 20 días pide unas ' + fmtCant(it.pedir) + (it.ultCompra && it.ultCompra.pu ? ' (≈ ' + money(Math.round(it.pedir * it.ultCompra.pu)) + ' a ' + money(it.ultCompra.pu) + ' c/u)' : '') + '.' : ''}</small>` : ''}
+      ${it.ultCompra ? `<small class="muted">Última compra: ${fmtCant(it.ultCompra.cantidad)} el ${fmtDiaLargo(it.ultCompra.dia)}.</small>` : ''}
+      ${esDueno() && it.historial.length ? `<div class="iv-hist">${it.historial.map(h => `<div><span>${fmtDiaLargo(h.dia)} · ${esc(nice(h.quien))}</span><b>${fmtCant(h.cantidad)}</b>${h.dif == null ? '<em class="muted">primer conteo</em>' : h.dif === 0 ? '<em class="ok">cuadró</em>' : `<em class="${h.dif < 0 ? 'bad' : 'ok'}">${h.dif > 0 ? '+' : ''}${fmtCant(h.dif)}</em>`}</div>`).join('')}</div>` : ''}
+      ${!esDueno() ? `<button class="btn sec small" data-act="invFalta" data-id="${it.id}">Avisar a Oscar que se está acabando</button>` : ''}
+    </section>`;
+  };
+  const abierto = its.find(i => i.id === Z.abierto);
+  const filas = [];
+  for (let i = 0; i < its.length; i += 2) {
+    filas.push(`<div class="iv-g">${tile(its[i], i)}${its[i + 1] ? tile(its[i + 1], i + 1) : '<span></span>'}</div>`);
+    if (abierto && (abierto.id === its[i].id || (its[i + 1] && abierto.id === its[i + 1].id))) filas.push(det(abierto));
+  }
+  return marco('Inventario', D.ultimoConteo ? 'Último conteo: ' + (D.diasSinContar === 0 ? 'hoy' : D.diasSinContar === 1 ? 'ayer' : 'hace ' + D.diasSinContar + ' días') : 'Planta El Diamante', `
+    <section class="iv-hero iv-h-${tono}"><div><b>${esc(titulo)}</b><small>${esc(sub)}</small></div>
+      <span class="iv-hero-n">${its.filter(i => i.nivel === 'ok').length}<small>/${its.length} bien</small></span></section>
+    ${D.diasSinContar != null && D.diasSinContar >= 7 ? `<div class="warnbox">Hace ${D.diasSinContar} días que no se cuenta. Cuenta cada semana para que los números sean reales.</div>` : ''}
+    ${filas.join('')}
+    <button class="btn iv-btn" data-go="invContar">${ICON_INV} Contar inventario</button>
+    <small class="muted" style="text-align:center">Cada garrafón vendido usa 1 tapa, 1 etiqueta y 1 sello. Las compras se suman al registrarlas en “Gasto o compra”.</small>`, true);
+};
+
+VISTAS.invContar = () => {
+  const Z = S.inv; if (!Z || !Z.data) return VISTAS.inventario();
+  Z.cuenta = Z.cuenta || {};
+  return marco('Contar inventario', 'Cuenta lo que hay en planta ahorita', `
+    <div class="card" style="gap:4px"><small class="muted">Escribe cuántos hay de cada cosa. Si algo no lo contaste, déjalo vacío. Las bolsas cerradas cuentan por lo que dice la bolsa.</small></div>
+    ${Z.data.items.map((it, i) => `<label class="iv-c"><span class="iv-ci" style="color:${INV_COL.ok}"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${INV_ICO[it.id]}</svg></span>
+      <span class="iv-cn"><b>${esc(it.nombre)}</b><small>${esc(it.detalle)}</small></span>
+      <input class="inp" inputmode="numeric" pattern="[0-9]*" data-ivc="${it.id}" value="${esc(Z.cuenta[it.id] || '')}" placeholder="0" aria-label="${esc(it.nombre)}"></label>`).join('')}
+    <label class="f">Nota (opcional)<input class="inp" id="ivNota" placeholder="Ej. 2 bolsas de tapas abiertas"></label>
+    <button class="btn" data-act="invGuardar">Guardar conteo</button>`, true);
+};
+VISTAS.invContar.despues = () => { document.querySelectorAll('[data-ivc]').forEach(i => { i.oninput = () => { i.value = i.value.replace(/[^0-9]/g, ''); S.inv.cuenta[i.dataset.ivc] = i.value; }; }); };
+
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b || !S.inv) return;
+  const d = b.dataset;
+  try {
+    if (d.inv) { S.inv.abierto = S.inv.abierto === d.inv ? null : d.inv; render(); }
+    else if (d.act === 'invFalta') { await run('apiInventarioFalta', [S.token, d.id], 'Avisando a Oscar…'); toast('Listo, le avisamos a Oscar'); }
+    else if (d.act === 'invGuardar') {
+      const r = await run('apiInventarioContar', [S.token, S.inv.cuenta, ($('#ivNota') || {}).value || ''], 'Guardando el conteo…');
+      S.inv = { data: null, abierto: null }; atras();
+      toast(r.faltan.length && esDueno() ? 'Conteo guardado. Hay menos de lo esperado: ' + r.faltan.join(', ') : 'Conteo guardado', !!(r.faltan.length && esDueno()));
+    }
+  } catch (err) {}
+});
 
 /* ============ facturas (dueño y contador) ============ */
 const ICON_FACT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6M9 13h8M9 17h5"/></svg>';
@@ -2191,6 +2341,8 @@ document.addEventListener('click', async e => {
     if (d.go === 'reporte') S.rep = null;
     if (d.go === 'sobres') S.sob = null;
     if (d.go === 'facturas') S.fac = null;
+    if (d.go === 'inventario') S.inv = null;
+    if (d.go === 'invContar' && S.inv) S.inv.cuenta = {};
     ir(d.go, { id: d.id, pedido: d.pedido, modo: d.modo }); return;
   }
   if (d.mapa) { S.mapa.tab = d.mapa; if (d.mapa === 'vendido') S.mapa.vendido = null; render(); return; }

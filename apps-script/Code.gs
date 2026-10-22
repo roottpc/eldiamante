@@ -43,6 +43,7 @@ const HOJAS_NUEVAS = {
   SEPARADOR: ['CONCEPTO', 'FORMA', 'MONTO', 'NOTA'],
   VERIFICACIONES: ['ID', 'FECHA', 'TIPO', 'ID_MOV', 'CLIENTE', 'MONTO', 'REGISTRO', 'ESTATUS', 'REVISO', 'FECHA_REVISION'],
   PUSH: ['ID', 'USUARIO', 'ROL', 'ENDPOINT', 'AVISOS', 'PEDIDOS', 'VENTAS', 'CREADO', 'ULTIMO'],
+  INVENTARIO_CONTEOS: ['ID', 'FECHA', 'INSUMO', 'CANTIDAD', 'ESPERADO', 'DIFERENCIA', 'REGISTRO', 'NOTA'],
   FISCAL: ['ID_CLIENTE', 'CLIENTE', 'RFC', 'RAZON_SOCIAL', 'CP', 'REGIMEN', 'USO_CFDI', 'CORREO', 'CSF_ID', 'ACTUALIZADO', 'NOTA'],
   FACTURAS: ['ID', 'FECHA', 'MES', 'ID_CLIENTE', 'CLIENTE', 'RFC', 'FOLIO', 'TOTAL', 'UUID', 'PDF_ID', 'XML_ID', 'OTRO_ID', 'SUBIO', 'SUBIDO', 'ESTATUS', 'RECIBIO', 'FECHA_RECIBIDA', 'NOTA'],
 };
@@ -431,6 +432,7 @@ function apiInicio(token) {
     linkPedidos: urlApp_() + '?p=pedido',
     linkCuenta: urlApp_() + '?p=cuenta&c=',
     puedeSalida: CONFIG.ROLES_SALIDA.indexOf(u.rol) >= 0,
+    inventarioAlerta: (u.rol === 'DUENO' || u.rol === 'PLANTA') ? (function () { try { return estadoInventario_().filter(i => i.nivel === 'pedir' || i.nivel === 'agotado').length; } catch (e) { return 0; } })() : 0,
     porConfirmar: u.rol === 'DUENO' ? (function () { try { return verificacionesPendientes_().length; } catch (e) { return 0; } })() : 0,
     carga: cargaHoy_(),
     exigirUbicacion: CONFIG.EXIGIR_UBICACION_EN_RUTA,
@@ -2403,6 +2405,108 @@ function autorizarNotificaciones() {
   vapid_();
   UrlFetchApp.fetch('https://www.google.com', { muteHttpExceptions: true });
   Logger.log('Listo: notificaciones autorizadas.');
+}
+
+// ======================= INVENTARIO (planta y dueño) =======================
+// Cuánto hay de cada insumo = último conteo + lo que se compró después − lo que se usó en las ventas después.
+// Cada garrafón vendido gasta 1 tapa, 1 etiqueta y 1 sello; cada galón vendido, 1 galón vacío; cada botella, 1 botella.
+const INV_ITEMS = [
+  { id: 'TAPAS', nombre: 'Tapas', detalle: 'de garrafón', unidad: 'tapas', usa: { GARRAFON: 1 } },
+  { id: 'ETIQUETAS', nombre: 'Etiquetas', detalle: 'de garrafón', unidad: 'etiquetas', usa: { GARRAFON: 1 } },
+  { id: 'SELLOS', nombre: 'Sellos', detalle: 'de garantía', unidad: 'sellos', usa: { GARRAFON: 1 } },
+  { id: 'GALON', nombre: 'Galones', detalle: 'vacíos, para llenar', unidad: 'galones', usa: { GALON: 1 } },
+  { id: 'BOTELLA 1 LT', nombre: 'Botellas 1 L', detalle: 'vacías', unidad: 'botellas', usa: { 'BOTELLA 1 LT': 1 } },
+  { id: 'BOTELLA 1/2 LT', nombre: 'Botellas ½ L', detalle: 'vacías', unidad: 'botellas', usa: { 'BOTELLA 1/2 LT': 1 } },
+  { id: 'GARRAFON', nombre: 'Garrafones', detalle: 'nuevos, de repuesto', unidad: 'garrafones', usa: {}, rotos: true },
+];
+const INV_DIAS_LLENO = 20;   // con 20 días o más de insumo, el tanque se ve lleno
+const INV_HORA_CORTE = 14;   // un conteo antes de las 2 pm cuenta las ventas y compras de ese mismo día como posteriores
+
+function sesionInv_(token) {
+  const u = sesion_(token);
+  if (u.rol !== 'DUENO' && u.rol !== 'PLANTA') throw new Error('El inventario lo llevan planta y Oscar.');
+  return u;
+}
+
+function estadoInventario_() {
+  hojaNueva_('INVENTARIO_CONTEOS');
+  const hoy = hoyKey_();
+  const conteos = leer_('INVENTARIO_CONTEOS').map(c => ({ insumo: up_(c.INSUMO), cuando: aFecha_(c.FECHA) || new Date(0), cantidad: num_(c.CANTIDAD), esperado: c.ESPERADO === '' ? null : num_(c.ESPERADO), dif: c.DIFERENCIA === '' ? null : num_(c.DIFERENCIA), quien: norm_(c.REGISTRO) }))
+    .sort((a, b) => a.cuando - b.cuando);
+  const ventas = leer_('VENTAS').map(v => ({ k: diaKey_(v.FECHA), p: up_(v.PRODUCTO), n: num_(v.CANTIDAD) })).filter(v => v.k);
+  const compras = leer_('COMPRAS').map(c => ({ k: diaKey_(c.FECHA), p: up_(c.PRODUCTO), n: num_(c.CANTIDAD), pu: num_(c['P.U.']) || (num_(c.CANTIDAD) ? num_(c.TOTAL) / num_(c.CANTIDAD) : 0) })).filter(c => c.k);
+  const rotos = leer_('REGRESO A PLANTA').map(r => ({ k: diaKey_(r.FECHA), n: num_(r['GARRAFONES ROTOS']) })).filter(r => r.k && r.n);
+  const desde14 = sumaDias_(hoy, -14);
+  return INV_ITEMS.map(it => {
+    const cs = conteos.filter(c => c.insumo === it.id);
+    const ult = cs[cs.length - 1] || null;
+    let kC = '', antes = true;
+    if (ult) { kC = Utilities.formatDate(ult.cuando, CONFIG.ZONA, 'yyyy-MM-dd'); antes = num_(Utilities.formatDate(ult.cuando, CONFIG.ZONA, 'HH')) < INV_HORA_CORTE; }
+    const despues = k => !ult || k > kC || (k === kC && antes);
+    const usoDe = v => (it.usa[v.p] || 0) * v.n;
+    const usado = ventas.filter(v => despues(v.k)).reduce((s, v) => s + usoDe(v), 0) + (it.rotos ? rotos.filter(r => despues(r.k)).reduce((s, r) => s + r.n, 0) : 0);
+    const cIt = compras.filter(c => c.p === it.id);
+    const entro = cIt.filter(c => despues(c.k)).reduce((s, c) => s + c.n, 0);
+    // uso por día: promedio de los días con venta en las últimas 2 semanas
+    const dias = {};
+    ventas.filter(v => v.k >= desde14 && v.k < hoy).forEach(v => { dias[v.k] = (dias[v.k] || 0) + usoDe(v); });
+    if (it.rotos) rotos.filter(r => r.k >= desde14 && r.k < hoy).forEach(r => { dias[r.k] = (dias[r.k] || 0) + r.n; });
+    const nDias = Object.keys(dias).length;
+    const diario = nDias ? Object.keys(dias).reduce((s, k) => s + dias[k], 0) / Math.max(nDias, 6) : 0;
+    const stock = ult ? Math.round(ult.cantidad + entro - usado) : null;
+    const alcanza = stock != null && diario > 0.05 ? Math.max(0, stock / diario) : null;
+    const nivel = stock == null ? 'sin' : stock <= 0 ? 'agotado' : alcanza == null ? 'ok' : alcanza < 4 ? 'pedir' : alcanza < 10 ? 'pronto' : 'ok';
+    const ultCompra = cIt.slice().sort((a, b) => (a.k < b.k ? 1 : -1))[0];
+    return {
+      id: it.id, nombre: it.nombre, detalle: it.detalle, unidad: it.unidad, stock: stock, diario: Math.round(diario * 10) / 10,
+      alcanza: alcanza == null ? null : Math.floor(alcanza), nivel: nivel,
+      lleno: stock == null ? 0 : alcanza == null ? (stock > 0 ? 0.6 : 0) : Math.max(0, Math.min(1, alcanza / INV_DIAS_LLENO)),
+      conteo: ult ? { dia: kC, cantidad: ult.cantidad, quien: ult.quien, dif: ult.dif, esperado: ult.esperado } : null,
+      entro: Math.round(entro), usado: Math.round(usado),
+      ultCompra: ultCompra ? { dia: ultCompra.k, cantidad: ultCompra.n, pu: r2_(ultCompra.pu) } : null,
+      pedir: diario > 0.05 ? Math.ceil(diario * INV_DIAS_LLENO / 50) * 50 : 0,
+      historial: cs.slice(-4).reverse().map(c => ({ dia: Utilities.formatDate(c.cuando, CONFIG.ZONA, 'yyyy-MM-dd'), cantidad: c.cantidad, dif: c.dif, quien: c.quien })),
+    };
+  });
+}
+
+function apiInventario(token) {
+  const u = sesionInv_(token);
+  const items = estadoInventario_();
+  if (u.rol !== 'DUENO') items.forEach(i => { i.ultCompra = i.ultCompra ? { dia: i.ultCompra.dia, cantidad: i.ultCompra.cantidad } : null; });
+  const hoy = hoyKey_();
+  const ultimo = items.filter(i => i.conteo).map(i => i.conteo.dia).sort().pop() || null;
+  return { rol: u.rol, hoy: hoy, items: items, ultimoConteo: ultimo, diasSinContar: ultimo ? difDias_(hoy, ultimo) : null };
+}
+
+/** Conteo físico. Guarda lo que se contó y la diferencia contra lo que la app esperaba. */
+function apiInventarioContar(token, cantidades, nota) {
+  const u = sesionInv_(token);
+  cantidades = cantidades || {};
+  const ids = Object.keys(cantidades).filter(k => cantidades[k] !== '' && cantidades[k] != null && INV_ITEMS.some(i => i.id === k));
+  if (!ids.length) throw new Error('Escribe al menos una cantidad.');
+  ids.forEach(k => { if (!(num_(cantidades[k]) >= 0) || String(cantidades[k]).trim() === '') throw new Error('Revisa la cantidad de ' + k.toLowerCase() + '.'); });
+  const antes = estadoInventario_();
+  const faltan = [];
+  conLock_(() => ids.forEach(k => {
+    const it = antes.find(i => i.id === k), cant = Math.round(num_(cantidades[k]));
+    const esp = it && it.stock != null ? it.stock : '';
+    const dif = esp === '' ? '' : cant - esp;
+    escribir_('INVENTARIO_CONTEOS', { 'ID': id_(), 'FECHA': new Date(), 'INSUMO': k, 'CANTIDAD': cant, 'ESPERADO': esp, 'DIFERENCIA': dif, 'REGISTRO': u.nombre, 'NOTA': norm_(nota) });
+    if (dif !== '' && dif < 0 && -dif >= Math.max(10, Math.abs(esp) * 0.05)) faltan.push(-dif + ' ' + it.unidad);
+  }));
+  log_(u.nombre, 'CONTEO INVENTARIO', ids.map(k => k + ' ' + cantidades[k]).join(', '));
+  if (faltan.length && u.rol !== 'DUENO') avisoDueno_(u, 'Conteo de inventario de ' + nice_(u.nombre) + ': hay menos de lo esperado (' + faltan.join(', ') + '). Revísalo en Inventario.', 'PROBLEMA');
+  return { ok: true, faltan: faltan };
+}
+
+/** Planta avisa a Oscar que algo se está acabando. */
+function apiInventarioFalta(token, id) {
+  const u = sesionInv_(token);
+  const it = estadoInventario_().find(i => i.id === up_(id)); if (!it) throw new Error('No encontré ese insumo.');
+  avisoDueno_(u, 'Se están acabando las ' + it.nombre.toLowerCase() + ' ' + it.detalle + (it.stock != null ? ': quedan unas ' + Math.max(0, it.stock) + (it.alcanza != null ? ', alcanzan para ' + it.alcanza + ' días' : '') : '') + '.', 'SOLICITUD');
+  log_(u.nombre, 'AVISO INVENTARIO', it.id);
+  return { ok: true };
 }
 
 // ======================= FACTURAS (dueño y contador) =======================
