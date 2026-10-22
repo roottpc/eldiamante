@@ -1780,9 +1780,79 @@ VISTAS.reporte = () => {
     <div class="hv-ley">${['GAEL', 'JESSICA', 'BLANCA', 'OSCAR'].map(n => `<span><i style="background:${COLOR_QUIEN(n)}"></i>${nice(n)}</span>`).join('')}</div>
     <section class="card" style="gap:0;padding:6px 14px">${filas || '<p class="muted">No hubo ventas este día.</p>'}</section>
     ${rep}
-    <a class="btn sec" style="text-decoration:none;text-align:center" target="_blank" href="${wa('', textoDia(r))}">Mandar resumen por WhatsApp</a>`, true);
+    <button class="btn wa" data-act="repFoto">${ICON_WA}Mandar foto por WhatsApp</button>
+    <small class="muted" style="text-align:center">Se arma una imagen como esta pantalla y eliges a quién mandarla.</small>`, true);
 };
 VISTAS.reporte.despues = () => { const i = $('#rDia'); if (i) i.onchange = () => { if (!i.value) return; S.rep.dia = i.value; S.rep.data = null; render(); }; };
+/* Imagen del reporte del día para mandar por WhatsApp (se dibuja en el celular). */
+function imagenDia(r) {
+  const W = 860, S2 = 2, pad = 32;
+  const met = { EFECTIVO: ['Efectivo', '#00c8ff'], TRANSFERENCIA: ['Transferencia', '#3dffa8'], CREDITO: ['Fiado', '#ffc247'] };
+  const col = q => COLOR_QUIEN(q);
+  const dist = m => m >= 1000 ? (m / 1000).toFixed(1) + ' km' : m + ' m';
+  const lugar = v => {
+    if (!v.lugar) return [v.grupo === 'PLANTA' ? 'En la planta' : v.quien ? '' : 'Registrada por Oscar', '#7d91a4'];
+    const enP = v.lugar.planta < 150;
+    if (v.lugar.cliente == null) return [enP ? 'Registrada en la planta' : '', '#7d91a4'];
+    if (v.lugar.cliente <= r.distancia) return ['Frente al cliente', '#3dffa8'];
+    return [(enP ? 'En la planta' : 'A ' + dist(Math.round(v.lugar.planta / 10) * 10) + ' de la planta') + ' · a ' + dist(v.lugar.cliente) + ' del cliente', '#ff8fa3'];
+  };
+  const filaH = 112, H = 560 + r.ventas.length * filaH + r.repartidores.length * 300 + 80;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  const F = (s, w) => (w || 400) + ' ' + s + 'px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
+  const rr = (X, Y, w, h, rad, fill, stroke) => { x.beginPath(); x.roundRect ? x.roundRect(X, Y, w, h, rad) : x.rect(X, Y, w, h); if (fill) { x.fillStyle = fill; x.fill(); } if (stroke) { x.strokeStyle = stroke; x.lineWidth = 2; x.stroke(); } };
+  const t = (s, X, Y, size, color, w, align) => { x.font = F(size, w); x.fillStyle = color; x.textAlign = align || 'left'; x.fillText(s, X, Y); };
+  const m = n => money(Math.round(n));
+  x.fillStyle = '#04070b'; x.fillRect(0, 0, W, H);
+  let y = 70;
+  t('Ventas del día', pad, y, 42, '#e9f6ff', 800); y += 40;
+  t(fechaLarga(r.dia).replace(/^./, s => s.toUpperCase()) + ' · ' + new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }), pad, y, 24, '#7d91a4'); y += 34;
+  const box3 = (vals, Y) => { const w = (W - pad * 2 - 32) / 3; vals.forEach((v, i) => { const X = pad + i * (w + 16); rr(X, Y, w, 124, 24, '#0a1017', 'rgba(0,200,255,.22)'); t(v[0], X + w / 2, Y + 62, 40, v[2] || '#e9f6ff', 800, 'center'); t(v[1], X + w / 2, Y + 100, 22, '#7d91a4', 400, 'center'); }); };
+  box3([[m(r.total), 'vendido', '#00c8ff'], [m(r.efectivo.PLANTA + r.efectivo.RUTA + r.efectivo.DUENO), 'efectivo'], [m(r.fiado), 'fiado', '#ffc247']], y); y += 148;
+  t('Efectivo de cada quien', pad, y + 6, 26, '#e9f6ff', 700); y += 24;
+  box3([[m(r.efectivo.PLANTA + r.abonos.PLANTA), 'Planta'], [m(r.efectivo.RUTA + r.abonos.RUTA), 'Ruta'], [m(r.efectivo.DUENO + r.abonos.DUENO), 'Oscar']], y); y += 148;
+  const dup = r.duplicadas;
+  rr(pad, y, W - pad * 2, 64, 20, dup ? 'rgba(255,84,114,.12)' : 'rgba(61,255,168,.10)', dup ? 'rgba(255,84,114,.5)' : 'rgba(61,255,168,.45)');
+  t(dup ? dup + (dup === 1 ? ' venta parece repetida' : ' ventas parecen repetidas') : '✓ ' + r.ventas.length + ' ventas revisadas: no hay duplicadas', pad + 22, y + 41, 24, dup ? '#ff8fa3' : '#3dffa8', 700); y += 88;
+  r.ventas.forEach(v => {
+    rr(pad, y, W - pad * 2, filaH - 12, 24, v.duplicadaDe ? 'rgba(255,84,114,.12)' : '#0a1017', 'rgba(0,200,255,.16)');
+    const q = v.quien || (v.grupo === 'DUENO' ? 'OSCAR' : '?');
+    x.beginPath(); x.arc(pad + 44, y + 50, 22, 0, Math.PI * 2); x.fillStyle = col(q); x.fill();
+    t(q.charAt(0), pad + 44, y + 59, 22, '#04070b', 800, 'center');
+    t(nice(v.cliente), pad + 82, y + 36, 26, '#e9f6ff', 700);
+    t(v.cantidad + ' ' + nomProd(v.producto, v.cantidad) + ' × ' + money(v.precio) + (v.hora ? ' · ' + v.hora : ''), pad + 82, y + 64, 21, '#7d91a4');
+    const l = lugar(v); if (l[0]) t(l[0], pad + 82, y + 90, 20, l[1]);
+    t(money(v.total), W - pad - 22, y + 40, 28, '#e9f6ff', 800, 'right');
+    const mm = met[v.metodo] || [nice(v.metodo), '#7d91a4'];
+    x.font = F(19, 700); const pw = x.measureText(mm[0]).width + 24;
+    rr(W - pad - 22 - pw, y + 54, pw, 32, 16, 'rgba(255,255,255,.06)'); t(mm[0], W - pad - 22 - pw / 2, y + 77, 19, mm[1], 700, 'center');
+    y += filaH;
+  });
+  r.repartidores.forEach(g => {
+    y += 12; rr(pad, y, W - pad * 2, 270, 30, 'rgba(0,200,255,.08)', '#00c8ff');
+    t('Lo de ' + nice(g.nombre), pad + 28, y + 50, 30, '#e9f6ff', 800);
+    t(g.garrafones + ' garrafones × $4' + (g.galones ? ' + ' + g.galones + ' galones × $2' : ''), pad + 28, y + 96, 24, '#e9f6ff'); t(m(g.comision), W - pad - 28, y + 96, 24, '#e9f6ff', 700, 'right');
+    t('Préstamo', pad + 28, y + 134, 24, '#e9f6ff'); t('−' + m(g.prestamo), W - pad - 28, y + 134, 24, '#ff8fa3', 700, 'right');
+    x.strokeStyle = 'rgba(0,200,255,.35)'; x.beginPath(); x.moveTo(pad + 28, y + 156); x.lineTo(W - pad - 28, y + 156); x.stroke();
+    t('Le toca', pad + 28, y + 196, 32, '#e9f6ff', 800); t(m(g.pago), W - pad - 28, y + 196, 34, '#3dffa8', 800, 'right');
+    t('Cobró ' + m(g.efectivo) + ' en efectivo y dejó ' + m(g.fiado) + ' fiado. Entrega ' + m(g.entrega) + '.', pad + 28, y + 238, 21, '#7d91a4');
+    y += 282;
+  });
+  t('Purificadora El Diamante', W / 2, H - 30, 20, '#3a4a5a', 600, 'center');
+  return new Promise(ok => c.toBlob(ok, 'image/png'));
+}
+async function compartirImagenDia(r) {
+  const blob = await imagenDia(r);
+  const nombre = 'ventas-' + r.dia + '.png';
+  const archivo = new File([blob], nombre, { type: 'image/png' });
+  if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+    try { await navigator.share({ files: [archivo], title: 'Ventas del ' + fechaLarga(r.dia) }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nombre; document.body.appendChild(a); a.click(); a.remove();
+  toast('Se guardó la imagen en tu celular. Ábrela en WhatsApp para mandarla.');
+}
+
 function textoDia(r) {
   const L = ['*Ventas del ' + fechaLarga(r.dia) + '*', 'Vendido: ' + money(r.total) + ' (fiado ' + money(r.fiado) + ')', '',
     '*Efectivo*', '• Planta: ' + money(r.efectivo.PLANTA + r.abonos.PLANTA), '• Ruta: ' + money(r.efectivo.RUTA + r.abonos.RUTA), '• Oscar: ' + money(r.efectivo.DUENO + r.abonos.DUENO)];
@@ -1880,6 +1950,7 @@ document.addEventListener('click', async e => {
     else if (a === 'pushActivar') { loading(true, 'Activando…'); try { await activarPush(); toast('Notificaciones activas'); } catch (er) { toast(er.message, true); } finally { loading(false); } render(); }
     else if (a === 'pushProbar') { const sub = await subPush(); await run('apiPushProbar', [S.token, sub.endpoint], 'Mandando prueba…'); toast('Prueba enviada: te debe llegar en unos segundos'); }
     else if (a === 'pushApagar') { const sub = await subPush(); if (sub) { await run('apiPushQuitar', [S.token, sub.endpoint], 'Apagando…'); try { await sub.unsubscribe(); } catch (er) {} } PUSH.on = false; PUSH.prefs = null; toast('Notificaciones apagadas en este celular'); render(); }
+    else if (a === 'repFoto') { loading(true, 'Armando la imagen…'); try { await compartirImagenDia(S.rep.data); } catch (er) { toast('No se pudo armar la imagen: ' + er.message, true); } finally { loading(false); } }
     else if (a === 'repBorrar') {
       if (S.rep.borrar !== d.id) { S.rep.borrar = d.id; b.textContent = '¿Seguro? Toca otra vez'; b.classList.add('confirma'); return; }
       await run('apiBorrarVenta', [S.token, d.id], 'Borrando venta…'); toast('Venta borrada'); S.rep.data = null; S.rep.borrar = null; await cargar(true); render();
