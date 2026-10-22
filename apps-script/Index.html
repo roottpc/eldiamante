@@ -365,6 +365,20 @@ i.cq-l{background:var(--ok);opacity:.85;top:3px;bottom:3px}
 .mal{color:#ff8fa3!important}.bien{color:var(--ok)!important}
 .dupbox{margin-top:6px;font-size:12.5px;color:var(--bad);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .gael{border-color:var(--agua);gap:6px}.gael .neg{color:#ff8fa3}.gael .total{border-top:1px solid var(--line-2);padding-top:8px;margin-top:2px}.gael .total b{font-size:22px;color:var(--ok)}
+
+/* ---- sobres ---- */
+.sb-h{gap:6px}.sb-n{font:800 30px var(--display)!important;color:var(--agua)}
+.sb-bar{height:12px;border-radius:8px;background:var(--soft);overflow:hidden;margin:4px 0}.sb-bar i{display:block;height:100%;background:var(--agua);box-shadow:0 0 10px rgba(0,200,255,.5)}
+.sb-nu{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:16px;background:rgba(130,10,209,.14);border:1px solid rgba(170,90,255,.5)}
+.sb-nu b{color:#c99bff;font-size:15px}.sb-nu small{color:var(--muted);font-size:12.5px}
+.sb{border-top:1px solid var(--line)}.sb:first-child{border-top:0}
+.sb-r{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;padding:11px 0;background:none;border:0;text-align:left;color:var(--ink)}
+.sb-i{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font:800 15px var(--display);color:#04070b}
+.sb-t b{display:block;font-size:14.5px}.sb-t small{display:block;color:var(--muted);font-size:12px}
+.sb-p{display:block;height:5px;border-radius:4px;background:var(--soft);margin-top:5px;overflow:hidden}.sb-p i{display:block;height:100%}
+.sb-m{display:flex;flex-direction:column;align-items:flex-end;gap:3px}.sb-m b{font:700 15px var(--mono)}.sb-m b.neg{color:#ff8fa3}
+.pill.p-nu{background:rgba(170,90,255,.15);color:#c99bff;border-color:rgba(170,90,255,.6)}.pill.p-caja{background:var(--soft);color:var(--muted)}
+.sb-e{display:flex;flex-direction:column;gap:8px;padding:0 0 14px 44px}
 </style>
 </head>
 <body>
@@ -715,7 +729,7 @@ VISTAS.inicio = () => {
       <button class="big alt" data-go="calidad">${ICON.calidad}Calidad del agua</button>
       ${esDueno() ? `<button class="big" data-go="control" style="grid-column:1/-1;flex-direction:row;align-items:center;min-height:0">${ICON.escudo}Cuadre del negocio${d.porConfirmar ? ` <span class="pill p-bad">${d.porConfirmar} por confirmar</span>` : ''}</button>` : ''}
       ${esDueno() ? `<button class="big" data-go="reporte">${ICON.corte}Ventas del día</button><button class="big alt" data-go="historial">${ICON.pedidos}Historial de ventas</button>` : ''}
-      ${esDueno() ? `<button class="big alt" data-go="agenda">${ICON.agenda}Agenda</button><button class="big alt" data-go="separador">${ICON.sobres}Separador del día</button><button class="big alt" data-go="prestamos" style="grid-column:1/-1;flex-direction:row;align-items:center;min-height:0">${ICON.prestamo}Préstamos a trabajadores</button>` : ''}
+      ${esDueno() ? `<button class="big alt" data-go="agenda">${ICON.agenda}Agenda</button><button class="big alt" data-go="sobres">${ICON.sobres}Sobres del día</button><button class="big alt" data-go="prestamos" style="grid-column:1/-1;flex-direction:row;align-items:center;min-height:0">${ICON.prestamo}Préstamos a trabajadores</button>` : ''}
       <button class="big alt" data-go="avisos" style="grid-column:1/-1;flex-direction:row;align-items:center;min-height:0">${ICON_CAMPANA}Avisos del equipo${AV.noLeidos ? ` <span class="pill p-bad">${AV.noLeidos}</span>` : ''}</button>
     </div>
     ${d.pedidos.length ? `<div class="lbl">Pedidos por atender</div>${d.pedidos.slice(0, 3).map(p => filaPedido(p)).join('')}` : ''}
@@ -1860,6 +1874,56 @@ function textoDia(r) {
   return L.join('\n');
 }
 
+/* ============ sobres del día (solo dueño) ============ */
+const COLOR_SOBRE = ['#ff4fd8', '#ffb800', '#00c8ff', '#7c8cff', '#8fa3b6', '#8fa3b6', '#ff4fd8', '#3dffa8'];
+VISTAS.sobres = () => {
+  if (!esDueno()) return marco('Sobres del día', '', '<div class="badbox">Solo el dueño puede ver esto.</div>', true);
+  S.sob = S.sob || { dia: S.data.hoy, data: null, abierto: null, edit: false };
+  const Z = S.sob;
+  if (!Z.data) {
+    setTimeout(async () => { try { Z.data = await run('apiSobres', [S.token, Z.dia], 'Contando el efectivo…'); render(); } catch (e) {} }, 0);
+    return marco('Sobres del día', fechaLarga(Z.dia), '<p class="muted">Cargando…</p>', true);
+  }
+  const r = Z.data, P = r.plan;
+  const lleno = P.necesita ? Math.min(100, P.entrada / P.necesita * 100) : 100;
+  const sobre = (s, i) => {
+    const ab = Z.abierto === s.id, col = COLOR_SOBRE[i % 8];
+    const prog = s.meta ? Math.max(0, Math.min(100, s.saldo / s.meta * 100)) : null;
+    const hoyTxt = s.tipo === 'RESTO' ? (s.hoy < 0 ? '−' + money(Math.round(-s.hoy)) : money(Math.round(s.hoy))) : money(Math.round(s.hoy));
+    return `<div class="sb ${ab ? 'ab' : ''}"><button class="sb-r" data-sob="${s.id}" aria-expanded="${ab}">
+      <span class="sb-i" style="background:${col}">${i + 1}</span>
+      <span class="sb-t"><b>${esc(s.nombre)}</b><small>${esc(s.regla)}</small>${prog != null ? `<span class="sb-p"><i style="width:${prog}%;background:${col}"></i></span>` : ''}</span>
+      <span class="sb-m"><b class="${s.tipo === 'RESTO' && s.hoy < 0 ? 'neg' : ''}">${hoyTxt}</b><span class="pill ${s.donde === 'NU' ? 'p-nu' : 'p-caja'}">${s.donde === 'NU' ? 'Nu' : 'Caja'}</span></span></button>
+      ${ab ? `<div class="sb-e">
+        ${s.tipo === 'COMISION' ? '<p class="muted" style="margin:0">Se paga el mismo día, así que este sobre siempre queda en cero.</p>' : `<div class="tot"><span>Llevas apartado</span><b>${money(Math.round(s.saldo))}</b></div>
+        ${s.meta ? `<div class="tot"><span>Próximo pago${s.proximo ? ' (' + fmtDiaLargo(s.proximo) + ')' : ''}</span><b>${money(s.meta)}</b></div>` : ''}
+        ${s.gastado ? `<small class="muted">Ya salieron ${money(Math.round(s.gastado))} de este sobre en gastos registrados.</small>` : ''}`}
+        <small class="muted">${esc(s.nota)}</small>
+        ${Z.edit && s.tipo !== 'COMISION' && s.tipo !== 'RESTO' ? `<div class="grid2">
+          <label class="f">${s.tipo === 'POR_VENTA' ? 'Por garrafón' : s.tipo === 'PORCENTAJE' ? 'Porcentaje' : 'Al mes'}<input class="inp" id="sbMonto" inputmode="decimal" value="${s.monto}"></label>
+          ${s.tipo === 'POR_VENTA' ? `<label class="f">Por galón<input class="inp" id="sbGalon" inputmode="decimal" value="${s.montoGalon}"></label>` : `<label class="f">Pago (meta)<input class="inp" id="sbMeta" inputmode="decimal" value="${s.meta || ''}" placeholder="Sin meta"></label>`}</div>
+          <label class="f">Ya tenías apartado al empezar<input class="inp" id="sbIni" inputmode="decimal" placeholder="$0"></label>
+          <div class="seg">${[['CAJA', 'Se guarda en caja'], ['NU', 'Se guarda en Nu']].map(([k, t]) => `<button data-sbdonde="${k}" aria-pressed="${(Z.donde || s.donde) === k}">${t}</button>`).join('')}</div>
+          <button class="btn small" data-act="sbGuardar" data-id="${s.id}">Guardar sobre</button>` : ''}
+      </div>` : ''}</div>`;
+  };
+  return marco('Sobres del día', fechaLarga(r.plan.dia), `
+    <section class="card sb-h">
+      <div class="tot"><span class="muted">Dinero que entró</span><b class="sb-n">${money(Math.round(P.entrada))}</b></div>
+      <small class="muted">Efectivo ${money(P.efectivo)} · transferencias ${money(P.transferencia)} · abonos ${money(P.abonos)}</small>
+      ${P.fiado ? `<div class="tot" style="font-size:13px"><span class="muted">Fiado de hoy (todavía no es dinero)</span><b style="color:var(--warn)">${money(P.fiado)}</b></div>` : ''}
+      <div class="sb-bar"><i style="width:${lleno}%"></i></div>
+      <div class="tot" style="font-size:13px"><span class="muted">Necesitas apartar hoy</span><b>${money(Math.round(P.necesita))}</b></div>
+      ${P.falta ? `<div class="badbox">Hoy no alcanzó: faltan ${money(Math.round(P.falta))}.${P.fiado ? ' Cobra el fiado esta semana para completar los sobres.' : ''}</div>` : '<div class="okbox">Alcanzó para todos los sobres.</div>'}
+    </section>
+    ${r.aNu ? `<div class="sb-nu"><b>Mueve ${money(Math.round(r.aNu))} a tus cajitas de Nu</b><small>${r.sobres.filter(s => s.donde === 'NU' && s.alcanza > 0).map(s => esc(s.nombre) + ' ' + money(Math.round(s.alcanza))).join(' · ')}</small></div>` : ''}
+    <section class="card" style="gap:0;padding:6px 14px">${r.sobres.map(sobre).join('')}</section>
+    ${r.avisos.map(a => `<div class="warnbox">${esc(a.texto)}</div>`).join('')}
+    <button class="btn ${r.separadoHoy ? 'sec' : ''}" data-act="sbSeparar">${r.separadoHoy ? '✓ Ya separaste los sobres de hoy' : 'Ya separé los sobres de hoy'}</button>
+    <small class="muted" style="text-align:center">${r.racha ? 'Llevas ' + r.racha + (r.racha === 1 ? ' día seguido' : ' días seguidos') + ' separando' : 'Toca el botón cuando apartes el dinero, para llevar la cuenta de cada sobre.'}</small>
+    <button class="btn sec small" style="align-self:center" data-act="sbEditar">${Z.edit ? 'Listo, dejar de editar' : 'Cambiar montos de los sobres'}</button>`, true);
+};
+
 VISTAS.salida.despues = () => { const i = $('#rSalida'); if (i) i.onchange = () => { S.regSel = i.value; render(); }; };
 VISTAS.separador.despues = () => { const i = $('#sepDia'); if (i) i.onchange = () => { if (!i.value) return; S.sep.dia = i.value; S.sep.data = null; render(); }; };
 
@@ -1881,6 +1945,7 @@ document.addEventListener('click', async e => {
     if (d.go === 'historial') S.hist = null;
     if (d.go === 'control') S.control = { periodo: 'semana', data: null, desde: '', hasta: '' };
     if (d.go === 'reporte') S.rep = null;
+    if (d.go === 'sobres') S.sob = null;
     ir(d.go, { id: d.id, pedido: d.pedido, modo: d.modo }); return;
   }
   if (d.mapa) { S.mapa.tab = d.mapa; if (d.mapa === 'vendido') S.mapa.vendido = null; render(); return; }
@@ -1896,6 +1961,8 @@ document.addEventListener('click', async e => {
   if (d.avpara) { S.nuevoAviso.para = d.avpara; render(); return; }
   if (d.periodo) { S.panel.periodo = d.periodo; if (d.periodo !== 'rango') { S.panel.data = null; render(); } else render(); return; }
   if (d.tab) { S.panel.tab = d.tab; render(); return; }
+  if (d.sob) { S.sob.abierto = S.sob.abierto === d.sob ? null : d.sob; S.sob.donde = null; render(); return; }
+  if (d.sbdonde) { S.sob.donde = d.sbdonde; document.querySelectorAll('[data-sbdonde]').forEach(x => x.setAttribute('aria-pressed', x.dataset.sbdonde === d.sbdonde)); return; }
   if (d.rdia) { S.rep.dia = d.rdia; S.rep.data = null; render(); return; }
   if (d.hper) { S.hist.per = d.hper; S.hist.abierta = null; if (d.hper !== 'dia') S.hist.data = null; else { S.hist.dia = S.hist.dia || S.data.hoy; S.hist.data = null; } render(); return; }
   if (d.hv) { S.hist.abierta = S.hist.abierta === d.hv ? null : d.hv; S.hist.met = null; S.hist.borrar = null; render(); return; }
@@ -1950,6 +2017,13 @@ document.addEventListener('click', async e => {
     else if (a === 'pushActivar') { loading(true, 'Activando…'); try { await activarPush(); toast('Notificaciones activas'); } catch (er) { toast(er.message, true); } finally { loading(false); } render(); }
     else if (a === 'pushProbar') { const sub = await subPush(); await run('apiPushProbar', [S.token, sub.endpoint], 'Mandando prueba…'); toast('Prueba enviada: te debe llegar en unos segundos'); }
     else if (a === 'pushApagar') { const sub = await subPush(); if (sub) { await run('apiPushQuitar', [S.token, sub.endpoint], 'Apagando…'); try { await sub.unsubscribe(); } catch (er) {} } PUSH.on = false; PUSH.prefs = null; toast('Notificaciones apagadas en este celular'); render(); }
+    else if (a === 'sbSeparar') { await run('apiSobresSeparar', [S.token, S.sob.dia], 'Guardando…'); toast('Sobres de hoy separados'); S.sob.data = null; render(); }
+    else if (a === 'sbEditar') { S.sob.edit = !S.sob.edit; render(); }
+    else if (a === 'sbGuardar') {
+      const g = id => { const el = document.getElementById(id); return el ? el.value : undefined; };
+      await run('apiSobresGuardar', [S.token, d.id, { monto: g('sbMonto'), montoGalon: g('sbGalon'), meta: g('sbMeta'), saldoInicial: g('sbIni'), donde: S.sob.donde || '' }], 'Guardando…');
+      toast('Sobre guardado'); S.sob.data = null; S.sob.donde = null; render();
+    }
     else if (a === 'repFoto') { loading(true, 'Armando la imagen…'); try { await compartirImagenDia(S.rep.data); } catch (er) { toast('No se pudo armar la imagen: ' + er.message, true); } finally { loading(false); } }
     else if (a === 'repBorrar') {
       if (S.rep.borrar !== d.id) { S.rep.borrar = d.id; b.textContent = '¿Seguro? Toca otra vez'; b.classList.add('confirma'); return; }

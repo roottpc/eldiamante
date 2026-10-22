@@ -28,7 +28,7 @@ const CONFIG = {
   AVISAR_PEDIDOS_A: 'RUTA',                         // a quién le suena la campana con cada pedido nuevo
   AVISAR_PEDIDOS_POR_CORREO: true,                  // te llega un correo con cada pedido nuevo
   HORA_REPORTE_DIARIO: 21,                          // 9 pm: correo con el resumen del día
-  CATEGORIAS_GASTO: ['GASOLINA', 'SUELDO', 'RENTA', 'LUZ', 'AGUA', 'REFACCIONES', 'REPARACIONES', 'FILTROS Y QUIMICOS', 'EPP', 'LIMPIEZA', 'PUBLICIDAD', 'CREDITO MOTO', 'INTERNET', 'TELEFONO', 'OTRO'],
+  CATEGORIAS_GASTO: ['GASOLINA', 'SUELDO', 'RENTA', 'LUZ', 'AGUA', 'REFACCIONES', 'REPARACIONES', 'FILTROS Y QUIMICOS', 'EPP', 'LIMPIEZA', 'PUBLICIDAD', 'CREDITO MOTO', 'INTERNET', 'TELEFONO', 'PERSONAL OSCAR', 'OTRO'],
   INSUMOS: ['GARRAFON', 'GALON', 'BOTELLA 1 LT', 'BOTELLA 1/2 LT', 'TAPAS', 'SELLOS', 'ETIQUETAS'],
   PUNTOS_CALIDAD: ['AGUA CRUDA', 'DESPUES DE FILTROS', 'LLENADORA', 'PRODUCTO TERMINADO'],
 };
@@ -1480,7 +1480,7 @@ function panel_(desde, hasta) {
     precioPromedio: 0,
     ventasPlanta: sum(V.filter(v => norm_(v.ID_CLIENTE) === P), tot),
     comisiones: comisionDe(V),
-    gastos: sum(G, tot), compras: sum(C, tot),
+    gastos: sum(G.filter(g => !/PERSONAL/.test(up_(g.GASTO))), tot), compras: sum(C, tot), personal: sum(G.filter(g => /PERSONAL/.test(up_(g.GASTO))), tot),
     diferenciasCorte: sum(Bal.filter(b => b.EFECTIVO_ENTREGADO !== '' && b.EFECTIVO_ENTREGADO != null), b => num_(b.DIFERENCIA)),
   };
   r.precioPromedio = r.garrafones ? r2_(sum(garr, tot) / r.garrafones) : 0;
@@ -1583,10 +1583,11 @@ function reporteDiario() {
     }
   } catch (e) {}
   MailApp.sendEmail(CONFIG.CORREO_DUENO, 'Resumen ' + hoy + ' · ' + CONFIG.NEGOCIO, lineas.join('\n'));
+  recordatorioSobres_();
 }
 
 // ======================= CONTROLES Y CUADRE =======================
-function dinero_(n) { return '$' + (Math.round(num_(n) * 100) / 100).toLocaleString('es-MX'); }
+function dinero_(n) { const v = Math.round(num_(n) * 100) / 100; return '$' + v.toLocaleString('es-MX', Number.isInteger(v) ? {} : { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function esc_(s) { return norm_(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
 /** Asegura una columna en CLIENTES y regresa su número. */
@@ -2047,6 +2048,175 @@ function apiReporteDia(token, dia) {
     transferencia: suma(v => v.metodo === 'TRANSFERENCIA'), fiado: suma(v => v.metodo === 'CREDITO'),
     ventas: ventas, duplicadas: ventas.filter(v => v.duplicadaDe).length, repartidores: repartidores, distancia: CONFIG.DISTANCIA_ALERTA_M,
   };
+}
+
+// ======================= SOBRES DEL DÍA (dueño) =======================
+/*
+ * El efectivo de cada día se reparte en sobres. Cada sobre tiene su regla (comisión, por venta, fijo al mes, % o lo que quede),
+ * dónde se guarda (CAJA o NU) y qué gastos lo vacían (CATEGORIAS). El saldo de un sobre es lo que se separó menos lo que se gastó.
+ */
+const SOBRES_INICIALES = [
+  // SOBRE, TIPO, MONTO, MONTO_GALON, META, PAGO, CATEGORIAS, DONDE, NOTA
+  ['Comisión de Gael', 'COMISION', 0, 0, '', 'DIARIO', '', 'CAJA', '$4 por garrafón y $2 por galón de ruta, menos el préstamo. Se paga el mismo día.'],
+  ['Insumos', 'POR_VENTA', 2.2, 6.5, '', '', 'TAPAS,SELLOS,ETIQUETAS,GALONES,GARRAFON,BOTELLA,COMPRA', 'CAJA', 'Por cada garrafón vendido (tapa, etiqueta, sello, rotos) y por cada galón.'],
+  ['Sueldos de planta', 'FIJO_MES', 15600, 0, 3600, 'SABADO', 'SUELDO', 'CAJA', '$1,800 por semana a Jessica y a Blanca.'],
+  ['Moto', 'FIJO_MES', 7802, 0, 3901, '15,30', 'CREDITO MOTO', 'NU', '$3,901 el 15 y el 30.'],
+  ['Renta y servicios', 'FIJO_MES', 10095, 0, 4725, '18', 'RENTA,LUZ,AGUA,INTERNET,TELEFONO', 'NU', 'Renta $4,725 el 18 · luz $6,400 cada 2 meses · agua $1,750 · internet $420.'],
+  ['Gasolina y mantenimiento', 'FIJO_MES', 8320, 0, '', '', 'GASOLINA,REFACCIONES,REPARACIONES,FUMIGACION,FERRETERIA,EPP,LIMPIEZA,FILTROS,BATERIA,CASETA,MANGUERA,HOME DEPOT,OTRO', 'CAJA', 'Gasolina, refacciones, fumigación y servicio de la moto.'],
+  ['Ahorro', 'PORCENTAJE', 5, 0, '', '', 'AHORRO', 'NU', '5% de lo que entra. Tu colchón: no se toca salvo emergencias.'],
+  ['Tu sueldo', 'RESTO', 0, 0, '', '', 'PERSONAL', 'CAJA', 'Lo que quede después de llenar los demás.'],
+];
+const DIAS_TRABAJO_MES = 26;
+
+function hojaSobres_() {
+  const ss = ss_();
+  let h = ss.getSheetByName('SOBRES');
+  if (!h) {
+    h = ss.insertSheet('SOBRES');
+    const enc = ['ID', 'SOBRE', 'TIPO', 'MONTO', 'MONTO_GALON', 'META', 'PAGO', 'CATEGORIAS', 'DONDE', 'SALDO_INICIAL', 'NOTA'];
+    h.getRange(1, 1, 1, enc.length).setValues([enc]).setFontWeight('bold'); h.setFrozenRows(1);
+    h.getRange(2, 1, SOBRES_INICIALES.length, enc.length).setValues(SOBRES_INICIALES.map((s, i) => ['S' + (i + 1), s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7], 0, s[8]]));
+  }
+  let m = ss.getSheetByName('SOBRES_MOV');
+  if (!m) {
+    m = ss.insertSheet('SOBRES_MOV');
+    m.getRange(1, 1, 1, 6).setValues([['ID', 'FECHA', 'SOBRE', 'MONTO', 'TIPO', 'NOTA']]).setFontWeight('bold'); m.setFrozenRows(1);
+  }
+  return h;
+}
+function sobresConfig_() {
+  hojaSobres_();
+  return leer_('SOBRES').map(s => ({
+    id: norm_(s.ID), nombre: norm_(s.SOBRE), tipo: up_(s.TIPO), monto: num_(s.MONTO), montoGalon: num_(s.MONTO_GALON), meta: num_(s.META),
+    pago: up_(s.PAGO), categorias: norm_(s.CATEGORIAS).split(',').map(up_).filter(Boolean), donde: up_(s.DONDE) || 'CAJA', saldoInicial: num_(s.SALDO_INICIAL), nota: norm_(s.NOTA), _fila: s._fila,
+  }));
+}
+/** Próxima fecha de pago: "SABADO", "15,30" o "18". */
+function proximoPago_(pago, hoy) {
+  if (!pago || pago === 'DIARIO') return null;
+  const d0 = fechaDeKey_(hoy);
+  for (let i = 0; i < 70; i++) {
+    const d = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + i);
+    const ultimo = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    if (pago === 'SABADO' && d.getDay() === 6) return Utilities.formatDate(d, CONFIG.ZONA, 'yyyy-MM-dd');
+    const dias = pago.split(',').map(x => +x).filter(x => x > 0);
+    if (dias.some(x => d.getDate() === Math.min(x, ultimo))) return Utilities.formatDate(d, CONFIG.ZONA, 'yyyy-MM-dd');
+  }
+  return null;
+}
+/** Lo que entró y se vendió en un día, para llenar los sobres. */
+function entradaDia_(dia) {
+  const B = base_();
+  const quien = vendedores_();
+  const rol = {}; leer_('USUARIOS_APP').forEach(u => { rol[up_(u.NOMBRE)] = up_(u.ROL); });
+  const V = B.ventas.filter(v => diaKey_(v.FECHA) === dia);
+  const A = B.abonos.filter(a => diaKey_(a.FECHA) === dia && up_(a.METODO) !== 'AJUSTE' && num_(a.MONTO) > 0);
+  const s = f => r2_(V.filter(f).reduce((t, v) => t + num_(v.TOTAL), 0));
+  let comision = 0;
+  V.forEach(v => { const q = quien[norm_(v.ID_VENTA)]; if (q && rol[q.u] === 'RUTA') comision += num_(v.CANTIDAD) * (CONFIG.COMISION[up_(v.PRODUCTO)] || 0); });
+  let prestamo = 0;
+  try { prestamos_(dia).filter(t => t.puesto === 'RUTA' || /GAEL/i.test(t.nombre)).forEach(t => { prestamo += t.descontadoHoy || (t.saldo > 0 && t.trabajoHoy ? Math.min(t.descuento, t.saldo) : 0); }); } catch (e) {}
+  return {
+    efectivo: s(v => up_(v.METODO) === 'EFECTIVO'), transferencia: s(v => up_(v.METODO) === 'TRANSFERENCIA'), fiado: s(v => up_(v.METODO) === 'CREDITO'),
+    abonos: r2_(A.reduce((t, a) => t + num_(a.MONTO), 0)),
+    garrafones: V.filter(v => up_(v.PRODUCTO) === 'GARRAFON').reduce((t, v) => t + num_(v.CANTIDAD), 0),
+    galones: V.filter(v => up_(v.PRODUCTO) === 'GALON').reduce((t, v) => t + num_(v.CANTIDAD), 0),
+    comision: comision, prestamo: prestamo, vendio: V.length > 0,
+  };
+}
+/** Plan del día: cuánto toca a cada sobre y cuánto alcanza con lo que entró. */
+function planSobres_(dia) {
+  const cfg = sobresConfig_(), e = entradaDia_(dia);
+  const entrada = r2_(e.efectivo + e.transferencia + e.abonos);
+  let resto = entrada, necesita = 0;
+  const lista = cfg.map(s => {
+    let toca = 0, regla = '';
+    if (s.tipo === 'COMISION') { toca = Math.max(0, e.comision - e.prestamo); regla = e.comision ? (e.comision / 4 | 0) + ' garrafones de ruta × $4' + (e.prestamo ? ' − préstamo ' + dinero_(e.prestamo) : '') : 'Sin ventas de ruta'; }
+    else if (s.tipo === 'POR_VENTA') { toca = e.garrafones * s.monto + e.galones * s.montoGalon; regla = e.garrafones + ' garrafones × ' + dinero_(s.monto) + (e.galones ? ' + ' + e.galones + ' galones × ' + dinero_(s.montoGalon) : ''); }
+    else if (s.tipo === 'FIJO_MES') { toca = e.vendio ? s.monto / DIAS_TRABAJO_MES : 0; regla = dinero_(s.monto) + ' al mes'; }
+    else if (s.tipo === 'FIJO_SEMANA') { toca = e.vendio ? s.monto / 6 : 0; regla = dinero_(s.monto) + ' a la semana'; }
+    else if (s.tipo === 'PORCENTAJE') { toca = entrada * s.monto / 100; regla = s.monto + '% de lo que entró'; }
+    toca = r2_(toca);
+    if (s.tipo !== 'RESTO') necesita += toca;
+    const alcanza = s.tipo === 'RESTO' ? 0 : r2_(Math.min(toca, Math.max(0, resto)));
+    if (s.tipo !== 'RESTO') resto = r2_(resto - alcanza);
+    return { id: s.id, nombre: s.nombre, tipo: s.tipo, regla: regla || s.nota, toca: toca, alcanza: alcanza, donde: s.donde };
+  });
+  const sueldo = lista.find(s => s.tipo === 'RESTO');
+  if (sueldo) { sueldo.toca = r2_(entrada - necesita); sueldo.alcanza = Math.max(0, resto); sueldo.regla = sueldo.toca < 0 ? 'Hoy no quedó nada para ti' : 'Lo que quedó'; }
+  return { dia: dia, entrada: entrada, efectivo: e.efectivo, transferencia: e.transferencia, abonos: e.abonos, fiado: e.fiado, necesita: r2_(necesita), falta: r2_(Math.max(0, necesita - entrada)), lista: lista };
+}
+function apiSobres(token, dia) {
+  sesion_(token, true);
+  dia = /^\d{4}-\d{2}-\d{2}$/.test(String(dia || '')) ? String(dia) : hoyKey_();
+  const hoy = hoyKey_();
+  const plan = planSobres_(dia);
+  const cfg = sobresConfig_();
+  hojaSobres_();
+  const mov = leer_('SOBRES_MOV');
+  const inicio = PropertiesService.getScriptProperties().getProperty('sobres_inicio') || '';
+  const gastos = inicio ? leer_('GASTOS').filter(g => diaKey_(g.FECHA) >= inicio).concat(leer_('COMPRAS').filter(c => diaKey_(c.FECHA) >= inicio).map(c => ({ GASTO: 'COMPRA ' + up_(c.PRODUCTO), TOTAL: c.TOTAL, FECHA: c.FECHA }))) : [];
+  const deSobre = (g, s) => { const k = up_(g.GASTO); return s.categorias.some(c => k === c || k.indexOf(c) >= 0); };
+  const sobres = cfg.map(s => {
+    const separado = mov.filter(m => norm_(m.SOBRE) === s.id).reduce((t, m) => t + num_(m.MONTO), 0);
+    const gastado = s.tipo === 'COMISION' ? separado : gastos.filter(g => deSobre(g, s)).reduce((t, g) => t + num_(g.TOTAL), 0);
+    const saldo = r2_(s.saldoInicial + separado - gastado);
+    const prox = proximoPago_(s.pago, hoy);
+    const p = plan.lista.find(x => x.id === s.id) || {};
+    return { id: s.id, nombre: s.nombre, tipo: s.tipo, donde: s.donde, nota: s.nota, monto: s.monto, montoGalon: s.montoGalon, meta: s.meta, pago: s.pago,
+      saldo: saldo, gastado: r2_(gastado), proximo: prox, faltanDias: prox ? difDias_(prox, hoy) : null, hoy: p.toca || 0, alcanza: p.alcanza || 0, regla: p.regla || s.nota };
+  });
+  const separadoHoy = mov.some(m => diaKey_(m.FECHA) === dia && up_(m.TIPO) === 'SEPARADO');
+  // días seguidos separando (contando hacia atrás desde hoy o ayer)
+  const diasSep = {}; mov.filter(m => up_(m.TIPO) === 'SEPARADO').forEach(m => { diasSep[diaKey_(m.FECHA)] = 1; });
+  let racha = 0, k = diasSep[hoy] ? hoy : sumaDias_(hoy, -1);
+  for (let i = 0; i < 400; i++) { if (diasSep[k]) racha++; else if (fechaDeKey_(k).getDay() !== 0) break; k = sumaDias_(k, -1); }
+  const avisos = sobres.filter(s => s.meta && s.faltanDias != null && s.faltanDias <= 7 && s.saldo < s.meta).map(s => ({ sobre: s.nombre, texto: (s.faltanDias === 0 ? 'Hoy' : s.faltanDias === 1 ? 'Mañana' : 'En ' + s.faltanDias + ' días') + ' pagas ' + s.nombre.toLowerCase() + ' (' + dinero_(s.meta) + '). Llevas ' + dinero_(Math.round(Math.max(0, s.saldo))) + ': faltan ' + dinero_(Math.round(s.meta - Math.max(0, s.saldo))) + '.' }));
+  const aNu = r2_(plan.lista.filter(x => x.donde === 'NU').reduce((t, x) => t + x.alcanza, 0));
+  return { plan: plan, sobres: sobres, separadoHoy: separadoHoy, racha: racha, avisos: avisos, aNu: aNu, iniciado: !!inicio };
+}
+/** Registra que ya separaste los sobres del día (con lo que alcanzó, en orden). */
+function apiSobresSeparar(token, dia) {
+  const u = sesion_(token, true);
+  dia = /^\d{4}-\d{2}-\d{2}$/.test(String(dia || '')) ? String(dia) : hoyKey_();
+  return conLock_(() => {
+    hojaSobres_();
+    const props = PropertiesService.getScriptProperties();
+    if (!props.getProperty('sobres_inicio')) props.setProperty('sobres_inicio', dia);
+    const h = hoja_('SOBRES_MOV');
+    leer_('SOBRES_MOV').filter(m => diaKey_(m.FECHA) === dia && up_(m.TIPO) === 'SEPARADO').map(m => m._fila).sort((a, b) => b - a).forEach(f => h.deleteRow(f));
+    const plan = planSobres_(dia);
+    plan.lista.forEach(x => { if (x.alcanza > 0) escribir_('SOBRES_MOV', { 'ID': id_(), 'FECHA': fechaDeKey_(dia), 'SOBRE': x.id, 'MONTO': x.alcanza, 'TIPO': 'SEPARADO', 'NOTA': x.nombre }); });
+    log_(u.nombre, 'SOBRES SEPARADOS', { dia: dia, entrada: plan.entrada, falta: plan.falta });
+    return { ok: true };
+  });
+}
+/** El dueño cambia montos, meta, dónde se guarda o lo que ya tenía apartado. */
+function apiSobresGuardar(token, id, cambios) {
+  const u = sesion_(token, true);
+  return conLock_(() => {
+    const s = sobresConfig_().find(x => x.id === norm_(id));
+    if (!s) throw new Error('No encontré ese sobre');
+    const c = {};
+    if (cambios.monto !== undefined && cambios.monto !== '') c['MONTO'] = num_(cambios.monto);
+    if (cambios.montoGalon !== undefined && cambios.montoGalon !== '') c['MONTO_GALON'] = num_(cambios.montoGalon);
+    if (cambios.meta !== undefined) c['META'] = cambios.meta === '' ? '' : num_(cambios.meta);
+    if (cambios.donde) c['DONDE'] = up_(cambios.donde) === 'NU' ? 'NU' : 'CAJA';
+    if (cambios.saldoInicial !== undefined && cambios.saldoInicial !== '') c['SALDO_INICIAL'] = num_(cambios.saldoInicial);
+    actualizar_('SOBRES', s._fila, c);
+    log_(u.nombre, 'SOBRE EDITADO', { sobre: s.nombre, cambios: c });
+    return { ok: true };
+  });
+}
+/** Recordatorio nocturno: separar sobres y pagos que vienen. */
+function recordatorioSobres_() {
+  try {
+    const hoy = hoyKey_();
+    const plan = planSobres_(hoy);
+    if (!plan.entrada) return;
+    const ya = leer_('SOBRES_MOV').some(m => diaKey_(m.FECHA) === hoy && up_(m.TIPO) === 'SEPARADO');
+    if (!ya) notificar_('AVISOS', 'DUENO', 'Separa tus sobres de hoy', 'Entraron ' + dinero_(plan.entrada) + (plan.falta ? ' y faltan ' + dinero_(plan.falta) + ' para llenarlos' : '') + '. Ábrelos en Sobres del día.', 'sobres');
+  } catch (e) {}
 }
 
 // ======================= NOTIFICACIONES (app instalable) =======================
