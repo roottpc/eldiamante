@@ -440,7 +440,7 @@ function apiInicio(token) {
     })(),
     prestamo: u.rol !== 'DUENO' && u.idTrabajador ? (function () { try { const t = prestamos_(hoy).find(x => x.id === u.idTrabajador); return t && (t.saldo > 0 || t.descontadoHoy) ? { saldo: t.saldo, descuento: t.descuento, descontadoHoy: t.descontadoHoy } : null; } catch (e) { return null; } })() : null,
     vendidoPor: (function () { try { return ventasPorVendedor_(hoy); } catch (e) { return []; } })(),
-    envases: u.rol === 'DUENO' ? (function () { try { return envases_(7); } catch (e) { return []; } })() : null,
+    envases: u.rol === 'DUENO' || u.rol === 'PLANTA' ? (function () { try { return envases_(7); } catch (e) { return []; } })() : null,
     agenda: u.rol === 'DUENO' ? (function () { try { return agendaPendientes_().filter(a => a.faltan != null && a.faltan <= Math.max(a.avisar, 7)).slice(0, 4).map(limpia_); } catch (e) { return []; } })() : [],
   };
 }
@@ -775,7 +775,19 @@ function apiRegreso(token, data) {
     if (previo) actualizar_('REGRESO A PLANTA', previo._fila, valores);
     else escribir_('REGRESO A PLANTA', Object.assign({ 'ID_REGRESO': id_(), 'FECHA': fechaDeKey_(hoy), 'ID_SALIDA': data.idSalida }, valores));
     log_(u.nombre, previo ? 'REGRESO CORREGIDO' : 'REGRESO', data);
-    return { ok: true, corregido: !!previo };
+    let cuadre = null;
+    try {
+      const d = envases_(1)[0];
+      if (d && d.viajes && !d.sinRegreso) {
+        cuadre = { vendidos: d.vendidos, vacios: d.vacios, salieron: d.salieron, llenos: d.llenos, faltanVacios: d.noRegresaron, faltanLlenos: d.llenosFaltan };
+        const p = [];
+        if (d.noRegresaron > 2) p.push('faltan ' + d.noRegresaron + ' vacíos (se vendieron ' + d.vendidos + ' y regresaron ' + d.vacios + ')');
+        if (d.llenosFaltan > 2) p.push('faltan ' + d.llenosFaltan + ' llenos que no se vendieron ni regresaron');
+        if (d.llenosFaltan < -2) p.push('se registraron ' + (-d.llenosFaltan) + ' garrafones vendidos de más contra lo que salió');
+        if (p.length) avisoDueno_(u, 'Los garrafones de hoy no cuadran: ' + p.join('; ') + '.', 'PROBLEMA');
+      }
+    } catch (e) {}
+    return { ok: true, corregido: !!previo, cuadre: cuadre };
   });
 }
 
@@ -1975,6 +1987,66 @@ function apiZonas(token, dias) {
   const lista = Object.keys(por).map(k => por[k]).filter(x => x.total > 0).sort((a, b) => b.total - a.total);
   lista.forEach(x => { x.garrafones = Math.round(x.garrafones); x.total = r2_(x.total); });
   return { dias: dias, planta: CONFIG.PLANTA, clientes: lista };
+}
+
+/** Reporte de un día (solo dueño): cada venta con quién, dónde y cómo pagó; efectivo de planta, ruta y dueño; posibles duplicadas y el pago del repartidor. */
+function apiReporteDia(token, dia) {
+  sesion_(token, true);
+  dia = /^\d{4}-\d{2}-\d{2}$/.test(String(dia || '')) ? String(dia) : hoyKey_();
+  const B = base_();
+  const usuarios = leer_('USUARIOS_APP');
+  const rolDe = {}; usuarios.forEach(x => { rolDe[up_(x.NOMBRE)] = up_(x.ROL); });
+  const info = {};
+  leer_('LOG_APP').forEach(l => {
+    if (up_(l.ACCION) !== 'VENTA' || diaKey_(l.FECHA_HORA) !== dia) return;
+    let d = {}; try { d = JSON.parse(norm_(l.DETALLE)); } catch (e) { return; }
+    const lugar = d.lat == null ? null : { planta: Math.round(km_({ lat: +d.lat, lon: +d.lon }, CONFIG.PLANTA) * 1000), cliente: d.distancia_m == null ? null : num_(d.distancia_m) };
+    (d.ids || [d.id]).forEach(i => { if (i) info[i] = { quien: up_(l.USUARIO), hora: d.hora || '', lugar: lugar }; });
+  });
+  const ventas = B.ventas.filter(v => diaKey_(v.FECHA) === dia).map(v => {
+    const g = B.grupoDe[norm_(v.ID_CLIENTE)], i = info[norm_(v.ID_VENTA)] || {};
+    const quien = i.quien || '';
+    const planta = norm_(v.ID_CLIENTE) === CONFIG.ID_CLIENTE_PLANTA;
+    const grupo = planta || rolDe[quien] === 'PLANTA' ? 'PLANTA' : rolDe[quien] === 'RUTA' ? 'RUTA' : 'DUENO';
+    return { id: norm_(v.ID_VENTA), quien: quien, grupo: grupo, hora: i.hora || '', cliente: g ? g.base : norm_(v.ID_CLIENTE), producto: up_(v.PRODUCTO),
+      cantidad: num_(v.CANTIDAD), precio: num_(v['P.U.']), total: num_(v.TOTAL), metodo: up_(v.METODO), lugar: i.lugar || null };
+  }).sort((a, b) => (a.hora || '99') < (b.hora || '99') ? -1 : 1);
+  // posibles duplicadas: mismo cliente, producto y cantidad el mismo día, capturadas con menos de 15 minutos o sin hora
+  const min = h => { const m = String(h).match(/(\d+):(\d+)/); return m ? +m[1] * 60 + +m[2] : null; };
+  ventas.forEach((v, i) => {
+    for (let j = 0; j < i; j++) {
+      const w = ventas[j];
+      if (w.cliente === v.cliente && w.producto === v.producto && w.cantidad === v.cantidad && (min(v.hora) == null || min(w.hora) == null || Math.abs(min(v.hora) - min(w.hora)) <= 15)) { v.duplicadaDe = w.id; break; }
+    }
+  });
+  const suma = (f) => r2_(ventas.filter(f).reduce((s, v) => s + v.total, 0));
+  const efectivo = { PLANTA: suma(v => v.grupo === 'PLANTA' && v.metodo === 'EFECTIVO'), RUTA: suma(v => v.grupo === 'RUTA' && v.metodo === 'EFECTIVO'), DUENO: suma(v => v.grupo === 'DUENO' && v.metodo === 'EFECTIVO') };
+  // abonos cobrados en efectivo por cada quien
+  const abonos = { PLANTA: 0, RUTA: 0, DUENO: 0 };
+  B.abonos.filter(a => diaKey_(a.FECHA) === dia && up_(a.METODO) === 'EFECTIVO' && num_(a.MONTO) > 0).forEach(a => {
+    const m = norm_(a.COMENTARIOS).match(/App · ([^·]+)/); const q = m ? up_(m[1]) : '';
+    abonos[rolDe[q] === 'RUTA' ? 'RUTA' : rolDe[q] === 'PLANTA' ? 'PLANTA' : 'DUENO'] += num_(a.MONTO);
+  });
+  // pago de cada repartidor: comisión de su ruta menos el descuento del préstamo
+  const repartidores = usuarios.filter(x => up_(x.ROL) === 'RUTA').map(x => {
+    const n = up_(x.NOMBRE);
+    const mias = ventas.filter(v => v.quien === n && v.producto !== 'GALONCAMB' && norm_(v.cliente) !== '');
+    const garr = mias.filter(v => v.producto === 'GARRAFON').reduce((s, v) => s + v.cantidad, 0);
+    const gal = mias.filter(v => v.producto === 'GALON').reduce((s, v) => s + v.cantidad, 0);
+    const comision = garr * (CONFIG.COMISION.GARRAFON || 0) + gal * (CONFIG.COMISION.GALON || 0);
+    let prestamo = 0;
+    try { const t = prestamos_(dia).find(p => norm_(p.id) === norm_(x.ID_TRABAJADOR) || up_(p.nombre) === n); if (t) prestamo = t.descontadoHoy || (t.saldo > 0 ? Math.min(t.descuento, t.saldo) : 0); } catch (e) {}
+    const efe = r2_(mias.filter(v => v.metodo === 'EFECTIVO').reduce((s, v) => s + v.total, 0));
+    const fiado = r2_(mias.filter(v => v.metodo === 'CREDITO').reduce((s, v) => s + v.total, 0));
+    const pago = r2_(comision - prestamo);
+    return { nombre: n, garrafones: garr, galones: gal, comision: comision, prestamo: prestamo, pago: pago, efectivo: efe, fiado: fiado, abonos: abonos.RUTA, entrega: r2_(efe + abonos.RUTA - pago),
+      enPlanta: mias.filter(v => v.lugar && v.lugar.planta < 150).length, lejos: mias.filter(v => v.lugar && v.lugar.cliente != null && v.lugar.cliente > CONFIG.DISTANCIA_ALERTA_M).length, conGps: mias.filter(v => v.lugar).length, ventas: mias.length };
+  }).filter(r => r.ventas);
+  return {
+    dia: dia, total: suma(() => true), efectivo: efectivo, abonos: abonos,
+    transferencia: suma(v => v.metodo === 'TRANSFERENCIA'), fiado: suma(v => v.metodo === 'CREDITO'),
+    ventas: ventas, duplicadas: ventas.filter(v => v.duplicadaDe).length, repartidores: repartidores, distancia: CONFIG.DISTANCIA_ALERTA_M,
+  };
 }
 
 // ======================= NOTIFICACIONES (app instalable) =======================
