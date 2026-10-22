@@ -41,7 +41,7 @@ const HOJAS_NUEVAS = {
   AVISOS: ['ID_AVISO', 'FECHA_HORA', 'DE', 'ROL_DE', 'PARA', 'TIPO', 'MENSAJE', 'ESTATUS', 'LEIDO_POR', 'ATENDIO', 'FECHA_ATENDIDO'],
   AGENDA: ['ID', 'ACTIVIDAD', 'TIPO', 'FECHA', 'REPETIR', 'AVISAR_DIAS_ANTES', 'ESTATUS', 'HECHO_EL', 'COSTO', 'NOTA'],
   SEPARADOR: ['CONCEPTO', 'FORMA', 'MONTO', 'NOTA'],
-  VERIFICACIONES: ['ID', 'FECHA', 'TIPO', 'ID_MOV', 'CLIENTE', 'MONTO', 'REGISTRO', 'ESTATUS', 'REVISO', 'FECHA_REVISION'],
+  VERIFICACIONES: ['ID', 'FECHA', 'TIPO', 'ID_MOV', 'CLIENTE', 'MONTO', 'REGISTRO', 'ESTATUS', 'REVISO', 'FECHA_REVISION', 'COMPROBANTE'],
   PUSH: ['ID', 'USUARIO', 'ROL', 'ENDPOINT', 'AVISOS', 'PEDIDOS', 'VENTAS', 'CREADO', 'ULTIMO'],
   INVENTARIO_CONTEOS: ['ID', 'FECHA', 'INSUMO', 'CANTIDAD', 'ESPERADO', 'DIFERENCIA', 'REGISTRO', 'NOTA'],
   FISCAL: ['ID_CLIENTE', 'CLIENTE', 'RFC', 'RAZON_SOCIAL', 'CP', 'REGIMEN', 'USO_CFDI', 'CORREO', 'CSF_ID', 'ACTUALIZADO', 'NOTA'],
@@ -671,7 +671,7 @@ function apiVenta(token, data) {
     if (pedidos.GALONCAMB && !dueno) avisoDueno_(u, 'Cambio de galón sin cobro: ' + pedidos.GALONCAMB + ' a ' + quien + '.');
     const saldoNuevo = r2_(saldo_(B, g) + (metodo === 'CREDITO' ? total : 0));
     return {
-      ok: true, total: total, items: guardadas, saldo: saldoNuevo, distancia: distancia, ubicacionGuardada: ubicGuardada, carga: cargaHoy_(),
+      ok: true, total: total, items: guardadas, ids: guardadas.map(x => x.id), saldo: saldoNuevo, distancia: distancia, ubicacionGuardada: ubicGuardada, carga: cargaHoy_(),
       fuera: distancia != null && distancia > CONFIG.DISTANCIA_ALERTA_M && !dueno, porConfirmar: metodo === 'TRANSFERENCIA' && !dueno,
       ticket: esPaso_(g) || !esRuta ? null : ticketVenta_(g, guardadas, metodo, total, saldoNuevo),
     };
@@ -1638,7 +1638,7 @@ function porConfirmar_(tipo, idMov, cliente, monto, quien) {
 }
 function verificacionesPendientes_() {
   return leer_('VERIFICACIONES').filter(v => up_(v.ESTATUS) === 'PENDIENTE').map(v => ({
-    id: norm_(v.ID), dia: diaKey_(v.FECHA), tipo: up_(v.TIPO), cliente: norm_(v.CLIENTE), monto: num_(v.MONTO), registro: norm_(v.REGISTRO),
+    id: norm_(v.ID), dia: diaKey_(v.FECHA), tipo: up_(v.TIPO), cliente: norm_(v.CLIENTE), monto: num_(v.MONTO), registro: norm_(v.REGISTRO), comprobante: norm_(v.COMPROBANTE),
   }));
 }
 function apiVerificaciones(token) { sesion_(token, true); return verificacionesPendientes_(); }
@@ -1669,6 +1669,62 @@ function apiVerificar(token, id, accion) {
     log_(u.nombre, 'TRANSFERENCIA ' + (accion === 'OK' ? 'CONFIRMADA' : 'RECHAZADA'), { id: id, cliente: norm_(v.CLIENTE), monto: num_(v.MONTO), accion: accion });
     return { ok: true, estatus: est, pendientes: verificacionesPendientes_() };
   });
+}
+
+// ---------- foto del comprobante de transferencia ----------
+function colComprobante_() {
+  const h = hojaNueva_('VERIFICACIONES');
+  const enc = h.getRange(1, 1, 1, Math.max(1, h.getLastColumn())).getValues()[0].map(norm_);
+  if (enc.indexOf('COMPROBANTE') < 0) h.getRange(1, enc.length + 1).setValue('COMPROBANTE').setFontWeight('bold');
+}
+function carpetaComprobantes_(mes) {
+  const props = PropertiesService.getScriptProperties();
+  let raiz = null;
+  const id = props.getProperty('comp_carpeta');
+  if (id) { try { raiz = DriveApp.getFolderById(id); if (raiz.isTrashed()) raiz = null; } catch (e) { raiz = null; } }
+  if (!raiz) { raiz = DriveApp.createFolder('El Diamante · Comprobantes de transferencia'); props.setProperty('comp_carpeta', raiz.getId()); }
+  const it = raiz.getFoldersByName(mes);
+  return it.hasNext() ? it.next() : raiz.createFolder(mes);
+}
+/** Sube la foto de la transferencia de una venta o abono (ids = los de su ticket). */
+function apiComprobante(token, ids, archivo) {
+  const u = sesion_(token);
+  ids = (ids || []).map(norm_).filter(Boolean);
+  if (!ids.length || !archivo || !archivo.b64) throw new Error('Elige la foto de la transferencia.');
+  if (!/^image\//.test(archivo.tipo || '') && !/\.pdf$/i.test(archivo.nombre || '')) throw new Error('Sube una foto o captura de pantalla.');
+  colComprobante_();
+  return conLock_(() => {
+    let v = leer_('VERIFICACIONES').find(x => norm_(x.ID_MOV).split(',').map(norm_).some(i => ids.indexOf(i) >= 0));
+    let cliente = '', monto = 0, tipo = 'VENTA';
+    if (!v) {
+      // venta o abono del dueño (no pasa por confirmar): se guarda igual, ya confirmada
+      const vs = leer_('VENTAS').filter(x => ids.indexOf(norm_(x.ID_VENTA)) >= 0);
+      const ab = vs.length ? [] : leer_('ABONOS').filter(x => ids.indexOf(norm_(x.ID_ABONO)) >= 0);
+      if (!vs.length && !ab.length) throw new Error('No encontré esa venta. Inténtalo en un momento.');
+      tipo = vs.length ? 'VENTA' : 'ABONO';
+      monto = r2_((vs.length ? vs : ab).reduce((s, x) => s + num_(vs.length ? x.TOTAL : x.MONTO), 0));
+      cliente = B_nombre_(norm_((vs[0] || ab[0]).ID_CLIENTE));
+      escribir_('VERIFICACIONES', { 'ID': id_(), 'FECHA': fechaDeKey_(hoyKey_()), 'TIPO': tipo, 'ID_MOV': ids.join(','), 'CLIENTE': cliente, 'MONTO': monto, 'REGISTRO': u.nombre, 'ESTATUS': u.rol === 'DUENO' ? 'CONFIRMADA' : 'PENDIENTE', 'REVISO': u.rol === 'DUENO' ? u.nombre : '', 'FECHA_REVISION': u.rol === 'DUENO' ? new Date() : '' });
+      v = leer_('VERIFICACIONES').find(x => norm_(x.ID_MOV) === ids.join(','));
+    } else { cliente = norm_(v.CLIENTE); monto = num_(v.MONTO); tipo = up_(v.TIPO); }
+    const hoy = hoyKey_();
+    const ext = (/\.pdf$/i.test(archivo.nombre || '') ? '.pdf' : '.jpg');
+    const fid = guardarArchivo_(carpetaComprobantes_(hoy.slice(0, 7)), archivo, hoy + ' ' + limpiaNombre_(cliente) + ' $' + monto + ' ' + u.nombre + ext);
+    const ant = norm_(v.COMPROBANTE);
+    if (ant) { try { DriveApp.getFileById(ant).setTrashed(true); } catch (e) {} }
+    actualizar_('VERIFICACIONES', v._fila, { 'COMPROBANTE': fid });
+    log_(u.nombre, 'COMPROBANTE', cliente + ' $' + monto);
+    if (u.rol !== 'DUENO' && up_(v.ESTATUS) === 'PENDIENTE') notificar_('AVISOS', 'DUENO', 'Comprobante de ' + nice_(cliente), nice_(u.nombre) + ' subió la foto de la transferencia de ' + dinero_(monto) + '. Confírmala en Cuadre del negocio.', 'control');
+    return { ok: true };
+  });
+}
+/** El dueño ve la foto de una transferencia. */
+function apiComprobanteVer(token, idVerif) {
+  sesion_(token, true);
+  const v = leer_('VERIFICACIONES').find(x => norm_(x.ID) === norm_(idVerif));
+  if (!v || !norm_(v.COMPROBANTE)) throw new Error('Esa transferencia no tiene foto.');
+  const f = DriveApp.getFileById(norm_(v.COMPROBANTE)), b = f.getBlob();
+  return { nombre: f.getName(), tipo: b.getContentType(), b64: Utilities.base64Encode(b.getBytes()) };
 }
 
 // ---------- ticket por WhatsApp y estado de cuenta ----------
