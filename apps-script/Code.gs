@@ -643,7 +643,7 @@ function apiVenta(token, data) {
         'ID_VENTA': idV, 'FECHA': hoy, 'ID_CLIENTE': idCli, 'PRODUCTO': prod, 'CANTIDAD': cant,
         'TOTAL': r2_(cant * pu), 'P.U.': pu, 'METODO': metodo, 'UBICACION': ubStr,
       }, {
-        'COMISION': r => '=IF(C' + r + '="' + CONFIG.ID_CLIENTE_PLANTA + '", 0, (E' + r + ' * IF(D' + r + '="GARRAFON", ' + (CONFIG.COMISION.GARRAFON || 0) + ', IF(D' + r + '="GALON", ' + (CONFIG.COMISION.GALON || 0) + ', 0))))',
+        'COMISION': r => u.rol === 'DUENO' ? 0 : '=IF(C' + r + '="' + CONFIG.ID_CLIENTE_PLANTA + '", 0, (E' + r + ' * IF(D' + r + '="GARRAFON", ' + (CONFIG.COMISION.GARRAFON || 0) + ', IF(D' + r + '="GALON", ' + (CONFIG.COMISION.GALON || 0) + ', 0))))',
       });
       guardadas.push({ id: idV, producto: prod, cantidad: cant, precio: pu, total: r2_(cant * pu) });
     });
@@ -810,15 +810,22 @@ function cuentasDia_(dia) {
   const sal = leer_('SALIDA A RUTA').filter(x => diaKey_(x.FECHA) === dia);
   const reg = leer_('REGRESO A PLANTA').filter(x => diaKey_(x.FECHA) === dia);
   const sum = (arr, f) => r2_(arr.reduce((s, x) => s + f(x), 0));
-  const ruta = v.filter(x => norm_(x.ID_CLIENTE) !== P), planta = v.filter(x => norm_(x.ID_CLIENTE) === P);
+  const duenos = leer_('USUARIOS_APP').filter(x => up_(x.ROL) === 'DUENO').map(x => up_(x.NOMBRE));
+  // lo que vende el dueño lo lleva él en su camioneta: no sale del motocarro, no paga comisión y el efectivo lo trae él
+  const quien = vendedores_();
+  const esDueno = x => { const w = quien[norm_(x.ID_VENTA)]; return !!w && duenos.indexOf(w.u) >= 0; };
+  const planta = v.filter(x => norm_(x.ID_CLIENTE) === P);
+  const delDueno = v.filter(x => norm_(x.ID_CLIENTE) !== P && esDueno(x));
+  const ruta = v.filter(x => norm_(x.ID_CLIENTE) !== P && !esDueno(x));
   const q = (arr, prod) => sum(arr.filter(x => up_(x.PRODUCTO) === prod), x => num_(x.CANTIDAD));
   const comision = sum(ruta, x => num_(x.CANTIDAD) * (CONFIG.COMISION[up_(x.PRODUCTO)] || 0));
-  const duenos = leer_('USUARIOS_APP').filter(x => up_(x.ROL) === 'DUENO').map(x => up_(x.NOMBRE));
   const delDia = x => ['TRANSFERENCIA', 'DUENO'].indexOf(up_(x.METODO)) < 0 && duenos.indexOf(up_(x.REGISTRO)) < 0;
   const c = {
     dia: dia,
     garrafonesRuta: q(ruta, 'GARRAFON'), galonesRuta: q(ruta, 'GALON'),
     garrafonesPlanta: q(planta, 'GARRAFON'), galonesPlanta: q(planta, 'GALON'),
+    garrafonesDueno: q(delDueno, 'GARRAFON'), galonesDueno: q(delDueno, 'GALON'),
+    efectivoDueno: sum(delDueno.filter(x => up_(x.METODO) === 'EFECTIVO'), x => num_(x.TOTAL)),
     efectivoRuta: sum(ruta.filter(x => up_(x.METODO) === 'EFECTIVO'), x => num_(x.TOTAL)),
     efectivoPlanta: sum(planta.filter(x => up_(x.METODO) === 'EFECTIVO'), x => num_(x.TOTAL)),
     transferencias: sum(v.filter(x => up_(x.METODO) === 'TRANSFERENCIA'), x => num_(x.TOTAL)),
