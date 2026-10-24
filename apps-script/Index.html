@@ -462,6 +462,59 @@ i.cq-l{background:var(--ok);opacity:.85;top:3px;bottom:3px}
 .mc-l b{font-family:var(--mono)}
 .mc-capas{font-size:12px;color:var(--muted);text-align:center}
 .mc-lleno i{background:#00a6e0;box-shadow:0 0 8px #00c8ff}.mc-galon i{background:#7fe3ff;border-radius:3px}.mc-vacio i{border:2px dashed #9fb4c4}.mc-roto i{background:#ff5472}
+.hd-hero{border-radius:22px;padding:18px;background:linear-gradient(145deg,rgba(0,200,255,.16),rgba(0,200,255,.03) 60%),var(--panel);border:1px solid rgba(0,200,255,.35);display:flex;flex-direction:column;gap:14px;box-shadow:0 0 30px rgba(0,200,255,.08)}
+.hd-top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.hd-top small{color:var(--muted);font-size:13px;display:block}
+.hd-top strong{font:800 40px var(--mono);letter-spacing:-.04em;color:var(--agua);text-shadow:0 0 18px rgba(0,200,255,.5);line-height:1.1}
+.h7{display:flex;gap:5px;height:58px;align-items:flex-end}
+.h7-d{width:13px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px}
+.h7-d i{width:100%;border-radius:4px;background:rgba(0,200,255,.35)}
+.h7-d.hoy i{background:var(--agua);box-shadow:0 0 10px rgba(0,200,255,.6)}
+.h7-d span{font-size:9.5px;color:var(--muted);line-height:1}
+.hd-kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.hd-kpi span{display:flex;flex-direction:column;background:rgba(0,0,0,.25);border-radius:12px;padding:8px 10px;font-size:11.5px;color:var(--muted)}
+.hd-kpi b{font:700 18px var(--mono);color:var(--ink)}
+.hd-qb{display:flex;height:10px;border-radius:99px;overflow:hidden;gap:2px}
+.hd-ql{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;font-size:12px;color:var(--muted)}
+.hd-ql i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}.hd-ql b{color:var(--ink);font-family:var(--mono)}
+.hd-al{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -2px;padding:2px}
+.hd-al::-webkit-scrollbar{display:none}
+.hd-c{flex:none;border-radius:99px;padding:8px 14px;font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--soft);color:var(--ink);white-space:nowrap}
+.hd-c-bad{border-color:rgba(255,84,114,.6);background:var(--bad-soft);color:var(--bad)}.hd-c-warn{border-color:rgba(255,194,71,.55);background:var(--warn-soft);color:var(--warn)}
+.hd-c-info{border-color:rgba(0,200,255,.5);background:var(--agua-soft);color:var(--agua)}.hd-c-ok{border-color:rgba(61,255,168,.5);background:var(--ok-soft);color:var(--ok)}
+.hd-moto{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border-radius:18px;padding:12px 14px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.hd-mi{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--soft);flex:none}.hd-mi svg{width:24px;height:24px}
+.hd-mt{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}.hd-mt b{font-size:14.5px}.hd-mt small{color:var(--muted);font-size:12px}
+.hd-pb{height:6px;border-radius:99px;background:var(--soft);overflow:hidden;margin-top:3px}.hd-pb i{display:block;height:100%;border-radius:99px;background:currentColor}
+.hd-trae{display:flex;flex-direction:column;align-items:center}.hd-trae b{font:800 24px var(--mono)}.hd-trae small{font-size:10.5px;color:var(--muted)}
+.hd-ok{color:var(--ok);border-color:rgba(61,255,168,.35)}.hd-ok .hd-mi{color:var(--ok)}.hd-warn{color:var(--warn);border-color:rgba(255,194,71,.45)}.hd-bad{color:var(--bad);border-color:rgba(255,84,114,.5)}.hd-neutro{color:var(--muted)}
+.hd-moto b,.hd-moto .hd-trae b{color:var(--ink)}
+.hd-deben{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border-radius:18px;padding:14px 16px;border:1px solid rgba(255,194,71,.4);background:linear-gradient(135deg,var(--warn-soft),var(--panel));color:var(--ink)}
+.hd-deben>span:first-child{display:flex;flex-direction:column}.hd-deben small{color:var(--muted);font-size:12px}.hd-deben b{font:800 24px var(--mono);color:var(--warn)}
+.hd-db{flex:1;font-size:12.5px;color:var(--muted);text-align:right}.hd-db em{font-style:normal;color:var(--bad)}.hd-arr{font-size:26px;color:var(--muted)}
+.hd-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 6px;padding:6px 0}
+.hd-app{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;color:var(--ink);padding:0}
+.hd-ai{position:relative;width:56px;height:56px;border-radius:18px;display:grid;place-items:center;background:linear-gradient(160deg,rgba(0,200,255,.18),rgba(0,200,255,.04));border:1px solid rgba(0,200,255,.3);color:var(--agua)}
+.hd-ai svg{width:26px;height:26px}
+.hd-ai em{position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;padding:0 5px;border-radius:99px;background:var(--bad);color:#fff;font:700 11px/20px var(--mono);font-style:normal}
+.hd-app small{font-size:11.5px;color:var(--muted);text-align:center;line-height:1.2}
+.hd-app:active .hd-ai{transform:scale(.94)}
+.db-hero{border-radius:22px;padding:18px;background:linear-gradient(145deg,rgba(255,194,71,.14),transparent 60%),var(--panel);border:1px solid rgba(255,194,71,.4);display:flex;flex-direction:column;gap:10px}
+.db-hero small{color:var(--muted);font-size:13px}.db-hero strong{font:800 40px var(--mono);letter-spacing:-.04em;color:var(--warn);line-height:1.05}
+.db-stack{display:flex;height:14px;border-radius:99px;overflow:hidden;gap:2px}
+.db-ley{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted)}.db-ley i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.db{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.db.ab{border-color:var(--agua)}
+.db-r{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;background:none;border:0;color:var(--ink);text-align:left}
+.db-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}.db-t b{font-size:14.5px}.db-t small{font-size:11.5px;color:var(--muted)}
+.db-bar{height:6px;border-radius:99px;background:var(--soft);overflow:hidden}.db-bar i{display:block;height:100%;border-radius:99px;background:var(--agua)}
+.db-bar i.db-ok{background:var(--ok)}.db-bar i.db-warn{background:var(--warn)}.db-bar i.db-bad{background:var(--bad)}
+.db-m{display:flex;flex-direction:column;align-items:flex-end;gap:4px}.db-m b{font:800 18px var(--mono)}
+.db-e{display:flex;flex-direction:column;gap:10px;padding:0 14px 14px}
+.db-notas{display:flex;flex-direction:column;background:var(--soft);border-radius:12px;padding:6px 12px}
+.db-notas>div{display:grid;grid-template-columns:62px 1fr auto;gap:8px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:13px;align-items:baseline}
+.db-f{color:var(--muted)}.db-p em{font-style:normal;color:var(--warn);font-size:11.5px}.db-notas b{font-family:var(--mono)}
+.db-notas .db-tot{display:flex;justify-content:space-between;border:0;padding-top:9px;font-weight:700}.db-tot b{color:var(--warn);font-size:16px}
 </style>
 </head>
 <body>
@@ -791,6 +844,7 @@ VISTAS.inicio = () => {
   if (d.user.rol === 'CONTADOR') { S.vista = 'facturas'; return VISTAS.facturas(); }
   if (d.user.rol === 'PLANTA') return inicioPlanta(d);
   if (d.user.rol === 'RUTA') return inicioRuta(d);
+  if (esDueno()) return inicioDueno(d);
   const deben = d.clientes.filter(c => c.saldo > 0.5).sort((a, b) => b.saldo - a.saldo).slice(0, 3);
   return marco('Hola, ' + nice(d.user.nombre), fechaLarga(d.hoy), `
     ${esDueno() ? envasesHTML(d.envases) : ''}
@@ -2260,6 +2314,157 @@ document.addEventListener('click', async e => {
   } catch (err) {}
 });
 
+/* ============ inicio del dueño: resumido y gráfico ============ */
+const ICON_DEUDA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5"/><circle cx="17" cy="16" r="3"/></svg>';
+function inicioDueno(d) {
+  const r = d.resumenHoy, E = d.envases || [], h = E[E.length - 1] || null;
+  const deben = d.clientes.filter(c => c.saldo > 0.5), totDeben = deben.reduce((s, c) => s + c.saldo, 0);
+  const viejos = deben.filter(c => c.diasDesde != null && c.diasDesde > 21).length;
+  /* alertas en chips: solo lo que pide acción */
+  const al = [];
+  if (d.porConfirmar) al.push(['control', 'bad', d.porConfirmar + (d.porConfirmar === 1 ? ' transferencia' : ' transferencias') + ' por confirmar']);
+  if (h && h.viajes && !h.sinRegreso && h.noRegresaron > 2) al.push(['control', 'bad', 'Faltan ' + h.noRegresaron + ' vacíos hoy']);
+  if (h && h.sinRegreso) al.push(['salida', 'warn', h.sinRegreso === 1 ? 'Falta 1 regreso' : 'Faltan ' + h.sinRegreso + ' regresos']);
+  if (d.pedidos.length) al.push(['pedidos', 'warn', d.pedidos.length + (d.pedidos.length === 1 ? ' pedido' : ' pedidos')]);
+  if (d.inventarioAlerta) al.push(['inventario', 'warn', 'Inventario: pedir ' + d.inventarioAlerta]);
+  if (d.agenda && d.agenda.some(a => a.faltan != null && a.faltan <= 0)) al.push(['agenda', 'warn', 'Agenda vencida']);
+  if (AV.noLeidos) al.push(['avisos', 'info', AV.noLeidos + (AV.noLeidos === 1 ? ' aviso' : ' avisos')]);
+  /* barras de 7 días: garrafones vendidos en ruta */
+  const max7 = Math.max(1, ...E.map(x => x.vendidos));
+  const dias = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+  const barras7 = E.map((x, i) => { const [y, m, dd] = x.dia.split('-').map(Number); return `<div class="h7-d ${i === E.length - 1 ? 'hoy' : ''}"><i style="height:${Math.max(4, x.vendidos / max7 * 100)}%"></i><span>${dias[new Date(y, m - 1, dd).getDay()]}</span></div>`; }).join('');
+  /* motocarro */
+  let moto = '';
+  if (h) {
+    const tono = !h.viajes ? 'neutro' : h.sinRegreso ? 'warn' : (h.noRegresaron > 2 || h.llenosFaltan > 2) ? 'bad' : 'ok';
+    const pv = h.vendidos ? Math.min(100, h.vacios / h.vendidos * 100) : 0;
+    moto = `<button class="hd-moto hd-${tono}" data-go="salida"><span class="hd-mi">${ICON.salida}</span>
+      <span class="hd-mt"><b>${!h.viajes ? 'El motocarro no ha salido' : tono === 'ok' ? 'Motocarro: cuadra' : tono === 'warn' ? 'Motocarro: falta regreso' : 'Motocarro: no cuadra'}</b>
+      <small>${h.viajes ? h.salieron + ' salieron · ' + h.vendidos + ' vendidos · ' + h.vacios + ' vacíos' : 'Planta registra la salida'}</small>
+      ${h.viajes ? `<span class="hd-pb"><i style="width:${pv}%"></i></span>` : ''}</span>
+      ${d.carga && d.carga.registrada ? `<span class="hd-trae"><b>${Math.max(0, d.carga.garrafones)}</b><small>trae</small></span>` : ''}</button>`;
+  }
+  /* quién vendió hoy (garrafones) */
+  const vp = (d.vendidoPor || []).filter(g => g.garrafon + g.galon + g.botella > 0);
+  const totVP = vp.reduce((s, g) => s + g.garrafon, 0);
+  const quien = vp.length ? `<div class="hd-quien"><div class="hd-qb">${vp.map(g => `<i style="flex:${Math.max(g.garrafon, .001)};background:${COLOR_QUIEN(up(g.nombre))}"></i>`).join('')}</div>
+    <div class="hd-ql">${vp.map(g => `<span><i style="background:${COLOR_QUIEN(up(g.nombre))}"></i>${esc(nice(g.nombre))} <b>${g.garrafon}</b></span>`).join('')}</div></div>` : '';
+  const app = (go, ic, t, extra, id) => `<button class="hd-app" data-go="${go}"${id ? ` data-id="${id}"` : ''}><span class="hd-ai">${ic}${extra ? `<em>${extra}</em>` : ''}</span><small>${t}</small></button>`;
+  return marco('Hola, ' + nice(d.user.nombre), fechaLarga(d.hoy), `
+    ${colaHTML()}${notifHTML()}
+    <section class="hd-hero">
+      <div class="hd-top"><div><small>Vendido hoy</small><strong>${money(Math.round(r.ventas))}</strong></div>
+        <div class="h7" aria-label="Garrafones vendidos en ruta, últimos 7 días">${barras7}</div></div>
+      <div class="hd-kpi"><span><b>${r.garrafones}</b>garrafones</span><span><b>${r.galones}</b>galones</span><span><b>${money(Math.round(r.cobrado))}</b>cobrado</span></div>
+      ${quien}
+    </section>
+    ${al.length ? `<div class="hd-al">${al.map(([go, t, x]) => `<button class="hd-c hd-c-${t}" data-go="${go}">${esc(x)}</button>`).join('')}</div>` : '<div class="hd-al"><span class="hd-c hd-c-ok">✓ Todo en orden</span></div>'}
+    ${moto}
+    <button class="hd-deben" data-go="deudas"><span><small>Te deben</small><b>${money(Math.round(totDeben))}</b></span><span class="hd-db">${deben.length} clientes${viejos ? ` · <em>${viejos} con más de 3 semanas</em>` : ''}</span><span class="hd-arr">›</span></button>
+    <div class="hd-grid">
+      ${app('elegir', ICON.venta, 'Venta')}${app('venta', ICON.planta, 'Mostrador', '', d.idPlanta)}${app('deudas', ICON_DEUDA, 'Te deben')}${app('gasto', ICON.gasto, 'Gasto')}
+      ${app('reporte', ICON.corte, 'Ventas del día')}${app('control', ICON.escudo, 'Cuadre', d.porConfirmar || '')}${app('sobres', ICON.sobres, 'Sobres')}${app('historial', ICON.pedidos, 'Historial')}
+      ${app('salida', ICON.salida, 'Salida')}${app('inventario', ICON_INV, 'Inventario', d.inventarioAlerta || '')}${app('facturas', ICON_FACT, 'Facturas')}${app('corte', ICON.corte, 'Corte')}
+      ${app('agenda', ICON.agenda, 'Agenda')}${app('prestamos', ICON.prestamo, 'Préstamos')}${app('calidad', ICON.calidad, 'Calidad')}${app('avisos', ICON_CAMPANA, 'Avisos', AV.noLeidos || '')}
+    </div>
+    <div class="btnrow"><button class="btn sec small" style="flex:1" data-act="recargar">Actualizar</button>${PUSH.soporta && PUSH.on ? `<button class="btn sec small" style="flex:1" data-go="notif">Notificaciones</button>` : ''}</div>`);
+}
+const up = s => String(s || '').toUpperCase();
+
+/* ============ te deben: por cliente, con sus notas y su imagen para WhatsApp ============ */
+VISTAS.deudas = () => {
+  if (!esDueno()) return marco('Te deben', '', '<div class="badbox">Solo el dueño puede ver esto.</div>', true);
+  S.deu = S.deu || { data: null, abierto: null, q: '' };
+  const Z = S.deu;
+  if (!Z.data) { setTimeout(async () => { try { Z.data = await run('apiDeudas', [S.token], 'Revisando quién debe…'); render(); } catch (e) {} }, 0); return marco('Te deben', '', '<p class="muted">Cargando…</p>', true); }
+  const D = Z.data, q = Z.q.trim().toLowerCase();
+  const lista = D.clientes.filter(c => !q || c.nombre.toLowerCase().indexOf(q) >= 0);
+  const max = Math.max(1, ...D.clientes.map(c => c.saldo));
+  const top = D.clientes.slice(0, 5), resto = D.total - top.reduce((s, c) => s + c.saldo, 0);
+  const COL = ['#00c8ff', '#ff4fd8', '#ffb800', '#7c8cff', '#3dffa8'];
+  const tono = c => c.dias == null ? '' : c.dias > 30 ? 'bad' : c.dias > 14 ? 'warn' : 'ok';
+  const fila = c => {
+    const ab = Z.abierto === c.id;
+    return `<div class="db ${ab ? 'ab' : ''}"><button class="db-r" data-deu="${c.id}" aria-expanded="${ab}">
+      <span class="db-t"><b>${esc(nice(c.nombre))}</b><span class="db-bar"><i class="db-${tono(c)}" style="width:${Math.max(3, c.saldo / max * 100)}%"></i></span>
+      <small>${c.notas.length} nota${c.notas.length === 1 ? '' : 's'}${c.dias != null ? ' · la más vieja de hace ' + c.dias + ' días' : ''}</small></span>
+      <span class="db-m"><b>${money(Math.round(c.saldo))}</b>${c.limite && c.saldo > c.limite ? '<span class="pill p-bad">Pasó su límite</span>' : ''}</span></button>
+      ${ab ? `<div class="db-e">
+        <div class="db-notas">${c.notas.map(n => `<div><span class="db-f">${fmtDiaLargo(n.dia)}</span><span class="db-p">${n.cantidad} ${esc(nomProd(n.producto, n.cantidad))}${n.resto != null ? ' <em>(resta)</em>' : ''}</span><b>${money(n.resto != null ? n.resto : n.total)}</b></div>`).join('')}
+          <div class="db-tot"><span>Total</span><b>${money(c.saldo)}</b></div></div>
+        <small class="muted">${c.ultimoPago ? 'Último pago: ' + fmtDiaLargo(c.ultimoPago) : 'Sin pagos registrados en la app'}${c.limite ? ' · límite ' + money(c.limite) : ''}</small>
+        <div class="btnrow"><button class="btn wa small" style="flex:2" data-act="deuImg" data-id="${c.id}">${ICON_WA} Mandar imagen por WhatsApp</button><button class="btn sec small" style="flex:1" data-go="cobro" data-id="${c.id}">Registrar pago</button></div>
+      </div>` : ''}</div>`;
+  };
+  return marco('Te deben', D.clientes.length + ' clientes', `
+    <section class="db-hero"><small>Total que te deben</small><strong>${money(Math.round(D.total))}</strong>
+      <div class="db-stack">${top.map((c, i) => `<i style="flex:${c.saldo};background:${COL[i]}"></i>`).join('')}${resto > 0 ? `<i style="flex:${resto};background:#33414e"></i>` : ''}</div>
+      <div class="db-ley">${top.map((c, i) => `<span><i style="background:${COL[i]}"></i>${esc(nice(c.nombre))}</span>`).join('')}${resto > 0 ? '<span><i style="background:#33414e"></i>Otros</span>' : ''}</div></section>
+    <input class="inp" id="deuQ" placeholder="Buscar cliente" value="${esc(Z.q)}" autocomplete="off">
+    ${lista.map(fila).join('') || '<p class="muted">Sin resultados.</p>'}
+    <small class="muted" style="text-align:center">Barra verde: nota de menos de 2 semanas · amarilla: 2 a 4 semanas · roja: más de un mes.</small>`, true);
+};
+VISTAS.deudas.despues = () => { const q = $('#deuQ'); if (q) q.oninput = () => { S.deu.q = q.value; const p = q.selectionStart; render(); const n = $('#deuQ'); n.focus(); n.setSelectionRange(p, p); }; };
+
+/* imagen del estado de cuenta para el cliente (mismo estilo que Ventas del día, con el logo) */
+function cargarImg(src) { return new Promise(ok => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; }); }
+async function imagenDeuda(c, D) {
+  const W = 860, pad = 32, filaH = 112, n = c.notas.length;
+  const H = 330 + n * filaH + 250;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const x = cv.getContext('2d');
+  const F = (s, w) => (w || 400) + ' ' + s + 'px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
+  const rr = (X, Y, w, h, rad, fill, stroke) => { x.beginPath(); x.roundRect ? x.roundRect(X, Y, w, h, rad) : x.rect(X, Y, w, h); if (fill) { x.fillStyle = fill; x.fill(); } if (stroke) { x.strokeStyle = stroke; x.lineWidth = 2; x.stroke(); } };
+  const t = (s, X, Y, size, color, w, align) => { x.font = F(size, w); x.fillStyle = color; x.textAlign = align || 'left'; x.fillText(s, X, Y); };
+  x.fillStyle = '#04070b'; x.fillRect(0, 0, W, H);
+  const g = x.createRadialGradient(W / 2, 0, 20, W / 2, 0, 520); g.addColorStop(0, 'rgba(0,200,255,.16)'); g.addColorStop(1, 'rgba(0,200,255,0)'); x.fillStyle = g; x.fillRect(0, 0, W, 360);
+  const logo = await cargarImg(LOGO_FULL);
+  let y = 40;
+  if (logo) { const lh = 120, lw = logo.width / logo.height * lh; x.drawImage(logo, pad, y, lw, lh); }
+  t('Estado de cuenta', W - pad, y + 50, 34, '#e9f6ff', 800, 'right');
+  t(nice(c.nombre), W - pad, y + 92, 28, '#00c8ff', 700, 'right');
+  const fl = fechaLarga(D.hoy); t('Al ' + fl, W - pad, y + 126, 21, '#7d91a4', 400, 'right');
+  y = 200;
+  const bw = (W - pad * 2 - 16) / 2;
+  rr(pad, y, bw, 110, 24, '#0a1017', 'rgba(255,194,71,.45)'); t(money(Math.round(c.saldo)), pad + bw / 2, y + 58, 42, '#ffc247', 800, 'center'); t('total pendiente', pad + bw / 2, y + 92, 21, '#7d91a4', 400, 'center');
+  rr(pad + bw + 16, y, bw, 110, 24, '#0a1017', 'rgba(0,200,255,.22)'); t(String(n), pad + bw + 16 + bw / 2, y + 58, 42, '#e9f6ff', 800, 'center'); t(n === 1 ? 'nota sin pagar' : 'notas sin pagar', pad + bw + 16 + bw / 2, y + 92, 21, '#7d91a4', 400, 'center');
+  y += 134;
+  c.notas.forEach(nt => {
+    rr(pad, y, W - pad * 2, filaH - 12, 24, '#0a1017', 'rgba(0,200,255,.16)');
+    x.beginPath(); x.arc(pad + 44, y + 50, 24, 0, Math.PI * 2); x.fillStyle = '#00c8ff'; x.fill();
+    const [, mm, dd] = nt.dia.split('-').map(Number);
+    t(String(dd), pad + 44, y + 50, 20, '#04070b', 800, 'center'); t(['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'][mm - 1], pad + 44, y + 68, 12, '#04070b', 700, 'center');
+    const f = fechaLarga(nt.dia); t(f.charAt(0).toUpperCase() + f.slice(1), pad + 84, y + 40, 25, '#e9f6ff', 700);
+    t(nt.cantidad + ' ' + nomProd(nt.producto, nt.cantidad) + (nt.precio ? ' × ' + money(nt.precio) : ''), pad + 84, y + 72, 21, '#7d91a4');
+    t(money(nt.resto != null ? nt.resto : nt.total), W - pad - 22, y + 44, 28, '#e9f6ff', 800, 'right');
+    const et = nt.resto != null ? 'Resta' : 'Fiado'; x.font = F(19, 700); const pw = x.measureText(et).width + 24;
+    rr(W - pad - 22 - pw, y + 56, pw, 32, 16, 'rgba(255,194,71,.12)'); t(et, W - pad - 22 - pw / 2, y + 79, 19, '#ffc247', 700, 'center');
+    y += filaH;
+  });
+  y += 8;
+  rr(pad, y, W - pad * 2, 150, 30, 'rgba(0,200,255,.08)', '#00c8ff');
+  t('Total a pagar', pad + 28, y + 62, 32, '#e9f6ff', 800); t(money(c.saldo), W - pad - 28, y + 64, 40, '#3dffa8', 800, 'right');
+  t('Puedes pagar en efectivo con el repartidor o por transferencia.', pad + 28, y + 112, 21, '#7d91a4');
+  t('¡Gracias por su preferencia!  ·  Purificadora El Diamante', W / 2, H - 30, 20, '#3a4a5a', 600, 'center');
+  return new Promise(ok => cv.toBlob(ok, 'image/png'));
+}
+async function compartirDeuda(c, D) {
+  const blob = await imagenDeuda(c, D);
+  const nombre = 'cuenta-' + c.nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.png';
+  const archivo = new File([blob], nombre, { type: 'image/png' });
+  if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+    try { await navigator.share({ files: [archivo], title: 'Estado de cuenta ' + nice(c.nombre) }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nombre; document.body.appendChild(a); a.click(); a.remove();
+  toast('Se guardó la imagen. Ábrela en WhatsApp para mandarla.');
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b || !S.deu) return;
+  const d = b.dataset;
+  if (d.deu) { S.deu.abierto = S.deu.abierto === d.deu ? null : d.deu; render(); }
+  else if (d.act === 'deuImg') { const c = S.deu.data.clientes.find(x => x.id === d.id); if (c) { try { loading(true, 'Armando la imagen…'); await compartirDeuda(c, S.deu.data); } finally { loading(false); } } }
+});
+
 /* ============ facturas (dueño y contador) ============ */
 const ICON_FACT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6M9 13h8M9 17h5"/></svg>';
 const esContador = () => S.user && S.user.rol === 'CONTADOR';
@@ -2495,6 +2700,7 @@ document.addEventListener('click', async e => {
     if (d.go === 'reporte') S.rep = null;
     if (d.go === 'sobres') S.sob = null;
     if (d.go === 'facturas') S.fac = null;
+    if (d.go === 'deudas') S.deu = null;
     if (d.go === 'inventario') S.inv = null;
     if (d.go === 'invContar' && S.inv) S.inv.cuenta = {};
     ir(d.go, { id: d.id, pedido: d.pedido, modo: d.modo }); return;

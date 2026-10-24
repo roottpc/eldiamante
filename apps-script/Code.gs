@@ -2470,6 +2470,34 @@ function autorizarNotificaciones() {
   Logger.log('Listo: notificaciones autorizadas.');
 }
 
+// ======================= DEUDAS POR CLIENTE (dueño) =======================
+/** Quién debe, desde cuándo y qué notas forman su deuda (cada pago cubre primero las notas más viejas). */
+function apiDeudas(token) {
+  sesion_(token, true);
+  const B = base_(), hoy = hoyKey_();
+  const out = [];
+  Object.keys(B.grupos).forEach(k => {
+    const g = B.grupos[k], saldo = saldo_(B, g);
+    if (saldo < 0.5) return;
+    const ids = g.ids.map(norm_);
+    const notas = B.ventas.filter(v => ids.indexOf(norm_(v.ID_CLIENTE)) >= 0 && up_(v.METODO) === 'CREDITO' && num_(v.TOTAL) > 0)
+      .map(v => ({ id: norm_(v.ID_VENTA), dia: diaKey_(v.FECHA), producto: up_(v.PRODUCTO), cantidad: num_(v.CANTIDAD), precio: num_(v['P.U.']), total: r2_(num_(v.TOTAL)) }))
+      .filter(n => n.dia).sort((a, b) => (a.dia < b.dia ? -1 : a.dia > b.dia ? 1 : 0));
+    const pend = []; let acc = 0;
+    for (let i = notas.length - 1; i >= 0 && acc < saldo - 0.5; i--) { pend.unshift(notas[i]); acc = r2_(acc + notas[i].total); }
+    if (pend.length && acc - saldo > 0.5) { pend[0] = Object.assign({}, pend[0], { resto: r2_(pend[0].total - (acc - saldo)) }); }
+    const abonos = B.abonos.filter(a => ids.indexOf(norm_(a.ID_CLIENTE)) >= 0 && num_(a.MONTO) > 0 && up_(a.METODO) !== 'AJUSTE').map(a => diaKey_(a.FECHA)).filter(Boolean).sort();
+    const c = g.principal;
+    out.push({
+      id: norm_(c.ID_CLIENTE), nombre: g.base, telefono: norm_(c.TELEFONO).replace(/\.0$/, ''), saldo: saldo, limite: limiteCredito_(g),
+      notas: pend, desde: pend.length ? pend[0].dia : null, dias: pend.length ? difDias_(hoy, pend[0].dia) : null,
+      ultimoPago: abonos.length ? abonos[abonos.length - 1] : null, estatus: up_(c.ESTATUS_CLIENTE) || 'ACTIVO',
+    });
+  });
+  out.sort((a, b) => b.saldo - a.saldo);
+  return { hoy: hoy, negocio: CONFIG.NEGOCIO, total: r2_(out.reduce((s, x) => s + x.saldo, 0)), clientes: out };
+}
+
 // ======================= INVENTARIO (planta y dueño) =======================
 // Cuánto hay de cada insumo = último conteo + lo que se compró después − lo que se usó en las ventas después.
 // Cada garrafón vendido gasta 1 tapa, 1 etiqueta y 1 sello; cada galón vendido, 1 galón vacío; cada botella, 1 botella.
