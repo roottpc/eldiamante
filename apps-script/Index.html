@@ -454,6 +454,14 @@ i.cq-l{background:var(--ok);opacity:.85;top:3px;bottom:3px}
 .cp-ver svg{width:24px;height:24px;color:var(--agua);flex:none}.cp-ver span{display:flex;flex-direction:column}.cp-ver b{font-size:14px;color:var(--agua)}.cp-ver small{color:var(--muted);font-size:12px}
 .cp-modal{position:fixed;inset:0;z-index:99;background:rgba(0,0,0,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px}
 .cp-modal img{max-width:100%;max-height:82vh;border-radius:12px;object-fit:contain}
+.mc-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;background:radial-gradient(ellipse at 50% 40%,rgba(0,200,255,.10),transparent 70%);border-radius:18px;padding:6px 0 4px}
+.mc{width:min(100%,250px);height:auto;filter:drop-shadow(0 10px 18px rgba(0,0,0,.55))}
+.mc-ley{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;font-size:13px}
+.mc-l{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;background:var(--soft);border:1px solid var(--line)}
+.mc-l i{width:12px;height:12px;border-radius:50%;display:inline-block}
+.mc-l b{font-family:var(--mono)}
+.mc-capas{font-size:12px;color:var(--muted);text-align:center}
+.mc-lleno i{background:#00a6e0;box-shadow:0 0 8px #00c8ff}.mc-galon i{background:#7fe3ff;border-radius:3px}.mc-vacio i{border:2px dashed #9fb4c4}.mc-roto i{background:#ff5472}
 </style>
 </head>
 <body>
@@ -1076,6 +1084,85 @@ VISTAS.gasto = () => {
     <p class="muted" style="margin:0;font-size:13px">Las compras de insumos (tapas, galones, botellas, garrafones nuevos) se guardan en COMPRAS para llevar el inventario.</p>`, true);
 };
 
+/* ============ motocarro visto desde arriba (salida y regreso) ============ */
+/* Acomodo real: abajo 32 garrafones (4 × 8), 8 acostados entre los garrafones y las compuertas, y el resto arriba (segunda cama).
+   items: [{tipo:'lleno'|'vacio'|'roto'|'galon', n}] */
+function motocarroSVG(items, opts) {
+  opts = opts || {};
+  const C = 40, BX = 46, BY = 214, BW = 5.2 * C, BH = 8 * C;   /* interior de la caja: 208 × 320 */
+  const X0 = BX + 0.6 * C;                                   /* donde empieza la cama de 4 */
+  const garr = [], gal = [];
+  items.forEach(it => { const n = Math.min(120, Math.max(0, Math.round(+it.n || 0))); for (let i = 0; i < n; i++) (it.tipo === 'galon' ? gal : garr).push(it.tipo); });
+  const abajo = [], lado = [], arriba = [];
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 4; c++) abajo.push({ x: X0 + c * C + C / 2, y: BY + r * C + C / 2 });
+  for (let k = 0; k < 4; k++) { lado.push({ x: BX + 0.3 * C, y: BY + k * 2 * C + C, lado: 1 }); lado.push({ x: BX + BW - 0.3 * C, y: BY + k * 2 * C + C, lado: 1 }); }
+  for (let r = 0; r < 7; r++) for (let c = 0; c < 3; c++) arriba.push({ x: X0 + (c + 1) * C, y: BY + (r + 1) * C });
+  const slotsG = abajo.concat(lado, arriba);
+  const usados = new Set();
+  const colG = [];
+  garr.forEach((t, i) => { if (i < slotsG.length) { colG.push(Object.assign({ t: t }, slotsG[i])); usados.add(i); } });
+  /* galones: 4 por lugar libre (primero abajo, luego arriba) */
+  const libres = [];
+  abajo.forEach((s, i) => { if (!usados.has(i)) libres.push(Object.assign({ capa: 0 }, s)); });
+  arriba.forEach((s, i) => { if (!usados.has(32 + 8 + i)) libres.push(Object.assign({ capa: 1 }, s)); });
+  const colGl = [];
+  gal.forEach((t, i) => { const s = libres[Math.floor(i / 4)]; if (!s) return; const q = i % 4; colGl.push({ x: s.x + (q % 2 ? 1 : -1) * C * .23, y: s.y + (q < 2 ? -1 : 1) * C * .23, capa: s.capa }); });
+  const sw = (k) => Math.max(.6, C * k);
+  const garrafon = (g, encima) => {
+    const r = C * (encima ? .45 : .42), { x, y } = g;
+    const sombra = encima ? `<circle cx="${x + 3}" cy="${y + 4}" r="${r}" fill="rgba(0,0,0,.45)"/>` : '';
+    if (g.lado) {   /* acostado junto a la compuerta */
+      const L = C * 1.85, W = C * .5;
+      const cuerpo = g.t === 'vacio' ? `fill="rgba(160,190,210,.10)" stroke="#9fb4c4" stroke-dasharray="4 3"` : g.t === 'roto' ? `fill="rgba(255,84,114,.2)" stroke="#ff5472"` : `fill="url(#mcAguaL)" stroke="#7fe3ff"`;
+      return `<g><rect x="${x - W / 2}" y="${y - L / 2}" width="${W}" height="${L * .82}" rx="${W / 2}" ${cuerpo} stroke-width="1.6"/><rect x="${x - W * .22}" y="${y + L * .3}" width="${W * .44}" height="${L * .17}" rx="2" fill="${g.t === 'lleno' ? '#0a63c9' : 'none'}" stroke="${g.t === 'roto' ? '#ff5472' : g.t === 'vacio' ? '#9fb4c4' : '#bfefff'}" stroke-width="1.2"/></g>`;
+    }
+    if (g.t === 'vacio') return `<g>${sombra}<circle cx="${x}" cy="${y}" r="${r}" fill="${encima ? 'rgba(40,52,62,.95)' : 'rgba(160,190,210,.10)'}" stroke="#9fb4c4" stroke-width="${sw(.04)}" stroke-dasharray="4 3"/><circle cx="${x}" cy="${y}" r="${r * .3}" fill="none" stroke="#9fb4c4" stroke-width="${sw(.03)}"/></g>`;
+    if (g.t === 'roto') return `<g>${sombra}<circle cx="${x}" cy="${y}" r="${r}" fill="rgba(255,84,114,.22)" stroke="#ff5472" stroke-width="${sw(.045)}"/><path d="M${x - r * .6} ${y - r * .5} l${r * .5} ${r * .4} l-${r * .2} ${r * .3} l${r * .6} ${r * .3}" fill="none" stroke="#ff5472" stroke-width="${sw(.05)}"/></g>`;
+    return `<g>${sombra}<circle cx="${x}" cy="${y}" r="${r}" fill="url(#mcAgua)" stroke="${encima ? '#e6fbff' : '#7fe3ff'}" stroke-width="${sw(encima ? .055 : .04)}"/><circle cx="${x}" cy="${y}" r="${r * .62}" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="${sw(.03)}"/><circle cx="${x}" cy="${y}" r="${r * .3}" fill="#0a63c9" stroke="#bfefff" stroke-width="${sw(.025)}"/></g>`;
+  };
+  const galon = (g) => { const s = C * .4, x = g.x - s / 2, y = g.y - s / 2; return `<g>${g.capa ? `<rect x="${x + 2}" y="${y + 3}" width="${s}" height="${s}" rx="3" fill="rgba(0,0,0,.4)"/>` : ''}<rect x="${x}" y="${y}" width="${s}" height="${s}" rx="3.5" fill="url(#mcGalon)" stroke="#e6fbff" stroke-width="1"/><rect x="${x + s * .58}" y="${y + s * .14}" width="${s * .26}" height="${s * .42}" rx="1.5" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="1"/><circle cx="${x + s * .3}" cy="${y + s * .3}" r="${s * .11}" fill="#fff"/></g>`; };
+  const capa0 = colG.filter(g => !g.lado && g.y === Math.round(g.y * 1e6) / 1e6 && abajo.some(a => a.x === g.x && a.y === g.y));
+  const capaL = colG.filter(g => g.lado);
+  const capa1 = colG.filter(g => !g.lado && capa0.indexOf(g) < 0);
+  const rueda = (x, y, w, h) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${w * .35}" fill="#0b0f13" stroke="#2b3640" stroke-width="2"/><g stroke="#2b3640" stroke-width="2">${[.2, .4, .6, .8].map(k => `<line x1="${x + 2}" y1="${y + h * k}" x2="${x + w - 2}" y2="${y + h * k}"/>`).join('')}</g>`;
+  const N = garr.length + gal.length;
+  return `<svg class="mc" viewBox="0 0 300 560" role="img" aria-label="${esc(opts.aria || 'Motocarro visto desde arriba')}">
+  <defs>
+    <radialGradient id="mcAgua" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#7fe3ff"/><stop offset=".6" stop-color="#00a6e0"/><stop offset="1" stop-color="#0060a8"/></radialGradient>
+    <linearGradient id="mcAguaL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0060a8"/><stop offset=".5" stop-color="#3cc4f0"/><stop offset="1" stop-color="#0060a8"/></linearGradient>
+    <linearGradient id="mcGalon" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d6f7ff"/><stop offset="1" stop-color="#5ad0f5"/></linearGradient>
+    <linearGradient id="mcCuerpo" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1b2530"/><stop offset=".5" stop-color="#3a4a59"/><stop offset="1" stop-color="#1b2530"/></linearGradient>
+    <linearGradient id="mcPiso" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#141c24"/><stop offset="1" stop-color="#0e151b"/></linearGradient>
+  </defs>
+  ${rueda(139, 6, 22, 50)}
+  <path d="M132 40 h36 v22 h-36z" fill="#26313c" stroke="#3a4a59"/>
+  <path d="M92 70 Q150 58 208 70" fill="none" stroke="#5d6f80" stroke-width="7" stroke-linecap="round"/>
+  <rect x="80" y="64" width="20" height="11" rx="5" fill="#0b0f13"/><rect x="200" y="64" width="20" height="11" rx="5" fill="#0b0f13"/>
+  <circle cx="150" cy="58" r="7" fill="#ffe9a8" stroke="#c9a74a" stroke-width="2"/>
+  <path d="M118 76 Q150 66 182 76 L188 128 Q150 136 112 128 Z" fill="url(#mcCuerpo)" stroke="#4d5f70" stroke-width="2"/>
+  <path d="M138 84 h24" stroke="#00c8ff" stroke-width="3" stroke-linecap="round"/>
+  <rect x="122" y="126" width="56" height="58" rx="20" fill="#11161b" stroke="#2b3640" stroke-width="2"/>
+  <path d="M130 140 h40 M130 152 h40 M130 164 h40" stroke="#1f2830" stroke-width="2"/>
+  <rect x="98" y="150" width="22" height="8" rx="3" fill="#2b3640"/><rect x="180" y="150" width="22" height="8" rx="3" fill="#2b3640"/>
+  <rect x="136" y="182" width="28" height="24" fill="#26313c" stroke="#3a4a59"/>
+  ${rueda(12, 400, 24, 74)}${rueda(264, 400, 24, 74)}
+  <rect x="${BX - 12}" y="${BY - 12}" width="${BW + 24}" height="${BH + 24}" rx="8" fill="url(#mcPiso)" stroke="#5d6f80" stroke-width="7"/>
+  <g stroke="#1c252e" stroke-width="2">${[1, 2, 3, 4, 5].map(i => `<line x1="${BX + i * BW / 6}" y1="${BY - 4}" x2="${BX + i * BW / 6}" y2="${BY + BH + 4}"/>`).join('')}</g>
+  <g fill="#7d8e9e">${[0, .33, .66, 1].map(k => `<rect x="${BX - 16}" y="${BY + k * BH - 4}" width="10" height="8" rx="2"/><rect x="${BX + BW + 6}" y="${BY + k * BH - 4}" width="10" height="8" rx="2"/>`).join('')}</g>
+  <rect x="${BX - 6}" y="${BY + BH + 6}" width="${BW + 12}" height="5" fill="#ff5472" opacity=".75"/>
+  ${capa0.map(g => garrafon(g, false)).join('')}${colGl.filter(g => !g.capa).map(galon).join('')}
+  ${capaL.map(g => garrafon(g, false)).join('')}
+  ${capa1.map(g => garrafon(g, true)).join('')}${colGl.filter(g => g.capa).map(galon).join('')}
+  ${N ? '' : `<text x="150" y="${BY + BH / 2}" text-anchor="middle" fill="#6b7f90" font-size="15" font-weight="600">${esc(opts.vacio || 'Caja vacía')}</text>`}
+</svg>`;
+}
+function leyendaMC(items) {
+  const nom = { lleno: ['lleno', 'llenos'], galon: ['galón', 'galones'], vacio: ['vacío', 'vacíos'], roto: ['roto', 'rotos'] };
+  const g = items.filter(i => i.tipo !== 'galon').reduce((s, i) => s + (+i.n || 0), 0);
+  const capas = g ? ` <span class="mc-capas">${Math.min(g, 32)} abajo${g > 32 ? ' · ' + Math.min(8, g - 32) + ' en las compuertas' : ''}${g > 40 ? ' · ' + (g - 40) + ' arriba' : ''}</span>` : '';
+  return `<div class="mc-ley">${items.filter(i => +i.n > 0).map(i => `<span class="mc-l mc-${i.tipo}"><i></i><b>${+i.n}</b> ${nom[i.tipo][+i.n === 1 ? 0 : 1]}</span>`).join('') || '<span class="muted">Escribe las cantidades y se dibujan en el motocarro</span>'}</div>${capas}`;
+}
+
 VISTAS.salida = (p) => {
   const modo = (p && p.modo) || '';
   const sal = S.data.salidasHoy;
@@ -1096,13 +1183,15 @@ VISTAS.salida = (p) => {
       </div>`).join('') : '<p class="muted" style="margin:0">Hoy no se ha guardado ninguna salida.</p>'}</div>
     ${S.data.puedeSalida ? '' : '<div class="warnbox">La salida y el regreso los registra planta. Aquí puedes ver lo que se registró.</div>'}
     ${!S.data.puedeSalida || modo === 'regreso' ? '' : `<div class="card"><h3>${S.salCorr ? 'Corregir salida' : 'Sale a ruta'}</h3>
-      <label class="f">Garrafones llenos que carga<input class="inp" id="sGarr" inputmode="numeric" placeholder="0"></label>
-      <label class="f">Galones que carga<input class="inp" id="sGal" inputmode="numeric" placeholder="0"></label>
+      <div class="mc-wrap" id="mcSal">${motocarroSVG([], { vacio: 'Escribe lo que se carga' })}${leyendaMC([])}</div>
+      <div class="grid2"><label class="f">Garrafones llenos<input class="inp mc-in" id="sGarr" inputmode="numeric" placeholder="0"></label>
+      <label class="f">Galones<input class="inp mc-in" id="sGal" inputmode="numeric" placeholder="0"></label></div>
       <button class="btn" data-act="guardarSalida">💾 ${S.salCorr ? 'Guardar corrección' : 'Guardar salida (viaje ' + (sal.length + 1) + ')'}</button>
       ${S.salCorr ? '<button class="btn sec" data-act="cancelarCorreccion">Cancelar</button><small class="muted">Oscar recibe un aviso con lo que se corrigió.</small>' : ''}</div>`}
     ${!S.data.puedeSalida || modo === 'salida' ? '' : `<div class="card"><h3>Regresa a planta</h3>
       ${sal.length ? `<label class="f">Viaje<select class="inp" id="rSalida">${sal.map(s => `<option value="${s.id}"${s.id === sel ? ' selected' : ''}>Viaje ${s.ruta} · salió con ${s.garrafon} garrafones${s.regreso ? ' · regreso ya guardado' : ''}</option>`).join('')}</select></label>
       ${act && act.regreso ? '<p class="muted" style="margin:0 0 8px;font-size:13px">Este viaje ya tiene regreso guardado. Si cambias los números y guardas, se corrige.</p>' : ''}
+      <div class="mc-wrap" id="mcReg"></div>
       <div class="grid2"><label class="f">Vacíos<input class="inp" id="rVac" inputmode="numeric" placeholder="0" value="${rv('vacios')}"></label><label class="f">Llenos que regresan<input class="inp" id="rLlen" inputmode="numeric" placeholder="0" value="${rv('llenos')}"></label>
       <label class="f">Galones que regresan<input class="inp" id="rGal" inputmode="numeric" placeholder="0" value="${rv('galones')}"></label><label class="f">Rotos<input class="inp" id="rRot" inputmode="numeric" placeholder="0" value="${rv('rotos')}"></label></div>
       <button class="btn" data-act="guardarRegreso">💾 ${act && act.regreso ? 'Guardar corrección del regreso' : 'Guardar regreso'}</button>` : '<p class="muted" style="margin:0">Primero guarda una salida de hoy.</p>'}</div>`}`, true);
@@ -2012,7 +2101,15 @@ VISTAS.sobres = () => {
     <button class="btn sec small" style="align-self:center" data-act="sbEditar">${Z.edit ? 'Listo, dejar de editar' : 'Cambiar montos de los sobres'}</button>`, true);
 };
 
-VISTAS.salida.despues = () => { const i = $('#rSalida'); if (i) i.onchange = () => { S.regSel = i.value; render(); }; };
+VISTAS.salida.despues = () => {
+  const i = $('#rSalida'); if (i) i.onchange = () => { S.regSel = i.value; render(); };
+  const v = id => { const e = $(id); return e ? e.value.replace(/[^0-9]/g, '') : ''; };
+  const pintaSal = () => { const b = $('#mcSal'); if (!b) return; const it = [{ tipo: 'lleno', n: v('#sGarr') }, { tipo: 'galon', n: v('#sGal') }]; b.innerHTML = motocarroSVG(it, { vacio: 'Escribe lo que se carga' }) + leyendaMC(it); };
+  const pintaReg = () => { const b = $('#mcReg'); if (!b) return; const it = [{ tipo: 'vacio', n: v('#rVac') }, { tipo: 'lleno', n: v('#rLlen') }, { tipo: 'galon', n: v('#rGal') }, { tipo: 'roto', n: v('#rRot') }]; b.innerHTML = motocarroSVG(it, { vacio: 'Escribe lo que regresa' }) + leyendaMC(it); };
+  ['#sGarr', '#sGal'].forEach(s => { const e = $(s); if (e) e.oninput = pintaSal; });
+  ['#rVac', '#rLlen', '#rGal', '#rRot'].forEach(s => { const e = $(s); if (e) e.oninput = pintaReg; });
+  pintaSal(); pintaReg();
+};
 VISTAS.separador.despues = () => { const i = $('#sepDia'); if (i) i.onchange = () => { if (!i.value) return; S.sep.dia = i.value; S.sep.data = null; render(); }; };
 
 /* ============ foto del comprobante de transferencia ============ */
