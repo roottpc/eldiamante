@@ -719,6 +719,7 @@ function apiBorrarVenta(token, idVenta) {
 // ======================= GASTOS Y COMPRAS =======================
 function apiGasto(token, data) {
   const u = sesion_(token);
+  try { colsGasto_(); } catch (e) {}
   return conLock_(() => {
     const hoy = fechaMov_(u, data.fecha);
     const metodo = up_(data.metodo) === 'TRANSFERENCIA' ? 'TRANSFERENCIA' : 'EFECTIVO';
@@ -728,16 +729,137 @@ function apiGasto(token, data) {
     if (data.tipo === 'COMPRA') {
       const prod = up_(data.concepto);
       if (CONFIG.INSUMOS.indexOf(prod) < 0) throw new Error('Elige el insumo');
-      escribir_('COMPRAS', { 'ID_COMPRA': id_(), 'FECHA': hoy, 'PRODUCTO': prod, 'CANTIDAD': cant, 'TOTAL': total, 'METODO': metodo, 'REGISTRO': u.nombre },
+      escribir_('COMPRAS', { 'ID_COMPRA': id_(), 'FECHA': hoy, 'PRODUCTO': prod, 'CANTIDAD': cant, 'TOTAL': total, 'METODO': metodo, 'REGISTRO': u.nombre, 'NOTA': norm_(data.nota) },
         { 'P.U.': r => '=IF(OR(D' + r + '="", D' + r + '=0), "", F' + r + '/D' + r + ')' });
       log_(u.nombre, 'COMPRA', { insumo: prod, cantidad: cant, total: total });
     } else {
       const cat = up_(data.concepto);
       if (CONFIG.CATEGORIAS_GASTO.indexOf(cat) < 0) throw new Error('Elige la categoría');
-      escribir_('GASTOS', { 'ID_GASTOS': id_(), 'FECHA': hoy, 'GASTO': cat, 'COSTO': r2_(total / cant), 'CANTIDAD': cant, 'TOTAL': total, 'METODO': metodo, 'REGISTRO': u.nombre });
+      escribir_('GASTOS', { 'ID_GASTOS': id_(), 'FECHA': hoy, 'GASTO': cat, 'COSTO': r2_(total / cant), 'CANTIDAD': cant, 'TOTAL': total, 'METODO': metodo, 'REGISTRO': u.nombre, 'NOTA': norm_(data.nota) });
       log_(u.nombre, 'GASTO', { categoria: cat, total: total, nota: data.nota || '' });
     }
     return { ok: true };
+  });
+}
+
+// ======================= GASTOS CON TICKET (foto → renglones) =======================
+// La foto se guarda en Drive ("El Diamante · Tickets/AAAA-MM") y se lee con el OCR de Google Drive (gratis).
+// Requiere activar una vez el servicio avanzado "Drive API" en el editor de Apps Script (Servicios → + → Drive API).
+const REGLAS_GASTO = [
+  [/\bTAPA/, 'COMPRA', 'TAPAS'], [/SELLO/, 'COMPRA', 'SELLOS'], [/ETIQUETA/, 'COMPRA', 'ETIQUETAS'],
+  [/BOTELLA.*(1\/2|500|MEDIO)/, 'COMPRA', 'BOTELLA 1/2 LT'], [/BOTELLA/, 'COMPRA', 'BOTELLA 1 LT'], [/GARRAF/, 'COMPRA', 'GARRAFON'], [/GAL[OÓ]N|GALONES/, 'COMPRA', 'GALON'],
+  [/MAGNA|PREMIUM|DIESEL|GASOLINA|PEMEX|COMBUSTIBLE|\bG500\b|OXXO ?GAS|BP\b|SHELL|MOBIL/, 'GASTO', 'GASOLINA'],
+  [/FILTRO|CLORO|RESINA|CARB[OÓ]N|SAL (EN|GRANO|INDUSTRIAL)|MEMBRANA|L[AÁ]MPARA UV|OZONO|QU[IÍ]MIC/, 'GASTO', 'FILTROS Y QUIMICOS'],
+  [/LLANTA|ACEITE|BUJ[IÍ]A|BALATA|CADENA|REFACC|BATER[IÍ]A|C[AÁ]MARA|RIN\b|CLUTCH|FOCO/, 'GASTO', 'REFACCIONES'],
+  [/MANO DE OBRA|REPARAC|TALLER|SERVICIO/, 'GASTO', 'REPARACIONES'],
+  [/GUANTE|CUBREBOCA|BOTAS|MANDIL|COFIA/, 'GASTO', 'EPP'],
+  [/JAB[OÓ]N|DETERGENTE|ESCOBA|TRAPEADOR|FIBRA|LIMPIA|PINOL|BOLSA BASURA/, 'GASTO', 'LIMPIEZA'],
+  [/\bCFE\b|ENERG[IÍ]A EL[EÉ]CTRICA/, 'GASTO', 'LUZ'], [/SIAPA|AGUA POTABLE|SIAPA|SIAP/, 'GASTO', 'AGUA'],
+  [/TELMEX|TOTALPLAY|IZZI|MEGACABLE|INTERNET/, 'GASTO', 'INTERNET'], [/TELCEL|RECARGA|AT&T|MOVISTAR/, 'GASTO', 'TELEFONO'],
+  [/IMPRENTA|LONA|VOLANTE|PUBLICIDAD|FACEBOOK|META/, 'GASTO', 'PUBLICIDAD'],
+];
+function sugerirDestino_(texto, comercio) {
+  const t = up_(texto) + ' ', c = up_(comercio);
+  for (let i = 0; i < REGLAS_GASTO.length; i++) if (REGLAS_GASTO[i][0].test(t)) return { tipo: REGLAS_GASTO[i][1], concepto: REGLAS_GASTO[i][2] };
+  for (let i = 0; i < REGLAS_GASTO.length; i++) if (REGLAS_GASTO[i][0].test(c)) return { tipo: REGLAS_GASTO[i][1], concepto: REGLAS_GASTO[i][2] };
+  return { tipo: 'GASTO', concepto: 'OTRO' };
+}
+function carpetaTickets_(mes) {
+  const props = PropertiesService.getScriptProperties();
+  let raiz = null; const id = props.getProperty('tk_carpeta');
+  if (id) { try { raiz = DriveApp.getFolderById(id); if (raiz.isTrashed()) raiz = null; } catch (e) { raiz = null; } }
+  if (!raiz) { raiz = DriveApp.createFolder('El Diamante · Tickets de gastos'); props.setProperty('tk_carpeta', raiz.getId()); }
+  const it = raiz.getFoldersByName(mes); return it.hasNext() ? it.next() : raiz.createFolder(mes);
+}
+function ocrTicket_(blob) {
+  if (typeof Drive === 'undefined' || !Drive.Files) return null;
+  let doc = null;
+  try {
+    if (Drive.Files.insert) doc = Drive.Files.insert({ title: 'ocr-ticket', mimeType: 'application/vnd.google-apps.document' }, blob, { ocr: true, ocrLanguage: 'es' });
+    else doc = Drive.Files.create({ name: 'ocr-ticket', mimeType: 'application/vnd.google-apps.document' }, blob, { ocrLanguage: 'es' });
+    return DocumentApp.openById(doc.id).getBody().getText();
+  } catch (e) { return null; }
+  finally { if (doc) { try { DriveApp.getFileById(doc.id).setTrashed(true); } catch (e) {} } }
+}
+/** Lee el texto de un ticket: comercio, fecha, total y renglones (descripción, cantidad, importe). */
+function leerTicketTexto_(txt) {
+  const L = String(txt || '').split(/\r?\n/).map(s => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  const monto = s => { const m = s.match(/\$?\s*(\d{1,3}(?:[,]\d{3})*(?:\.\d{2})|\d+\.\d{2})\s*$/); return m ? num_(m[1].replace(/,/g, '')) : null; };
+  const NO = /SUB ?TOTAL|\bTOTAL\b|\bIVA\b|IEPS|CAMBIO|EFECTIVO|TARJETA|PAGO|RFC|FOLIO|TICKET|GRACIAS|DESCUENTO|AHORRO|ARTICULOS|ART[IÍ]CULOS|SALDO|REDONDEO|PROPINA|VISA|MASTER|D[EÉ]BITO|CR[EÉ]DITO|AUTORIZ|CAJA|CAJERO|TEL\.?|CP\b|C\.P\./i;
+  let comercio = '';
+  for (let i = 0; i < Math.min(4, L.length); i++) { if (/[A-ZÁÉÍÓÚÑ]{3,}/.test(L[i]) && !/RFC|TEL|FOLIO|\d{3,}/i.test(L[i])) { comercio = L[i].slice(0, 60); break; } }
+  let fecha = '';
+  for (let i = 0; i < L.length && !fecha; i++) {
+    const m = L[i].match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+    if (m) { let y = +m[3]; if (y < 100) y += 2000; const d = +m[1], mo = +m[2]; if (d >= 1 && d <= 31 && mo >= 1 && mo <= 12 && y >= 2020) fecha = y + '-' + String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0'); }
+  }
+  let total = null;
+  for (let i = 0; i < L.length; i++) {
+    if (/\bTOTAL\b/i.test(L[i]) && !/SUB ?TOTAL|ART/i.test(L[i])) { const v = monto(L[i]) != null ? monto(L[i]) : (L[i + 1] ? monto(L[i + 1]) : null); if (v != null) total = v; }
+  }
+  const lineas = [];
+  L.forEach(s => {
+    if (NO.test(s)) return;
+    const v = monto(s); if (v == null || v <= 0) return;
+    let d = s.replace(/\$?\s*(\d{1,3}(?:[,]\d{3})*(?:\.\d{2})|\d+\.\d{2})\s*$/, '').trim();
+    let cant = 1;
+    const q = d.match(/^(\d+(?:\.\d+)?)\s*(?:X|PZA?S?|PZ|UN|LTS?|L)?\s+(.+)$/i);
+    if (q && num_(q[1]) > 0 && num_(q[1]) < 10000) { cant = num_(q[1]); d = q[2]; }
+    d = d.replace(/\s+\$?\d+(\.\d{2})?\s*$/, '').trim();   /* quita el precio unitario si viene antes del importe */
+    if (!/[A-Za-zÁÉÍÓÚÑáéíóúñ]{3,}/.test(d)) return;
+    lineas.push({ desc: d.slice(0, 80), cantidad: cant, total: r2_(v) });
+  });
+  if (total == null && lineas.length) total = r2_(lineas.reduce((s, l) => s + l.total, 0));
+  return { comercio: comercio, fecha: fecha, total: total, lineas: lineas.slice(0, 25) };
+}
+/** Sube la foto del ticket, la lee y regresa los renglones sugeridos con su destino. */
+function apiTicketLeer(token, archivo) {
+  const u = sesion_(token);
+  if (!archivo || !archivo.b64) throw new Error('Toma la foto del ticket.');
+  const hoy = hoyKey_();
+  const bytes = Utilities.base64Decode(archivo.b64);
+  const blob = Utilities.newBlob(bytes, archivo.tipo || 'image/jpeg', hoy + ' ticket ' + u.nombre + '.jpg');
+  const fid = carpetaTickets_(hoy.slice(0, 7)).createFile(blob).getId();
+  const texto = ocrTicket_(Utilities.newBlob(bytes, archivo.tipo || 'image/jpeg', 'ticket.jpg'));
+  if (texto == null) return { ok: true, ticketId: fid, leido: false, comercio: '', fecha: hoy, total: null, lineas: [] };
+  const r = leerTicketTexto_(texto);
+  r.lineas.forEach(l => { const s = sugerirDestino_(l.desc, r.comercio); l.tipo = s.tipo; l.concepto = s.concepto; });
+  if (!r.lineas.length && r.total) { const s = sugerirDestino_(r.comercio, r.comercio); r.lineas.push({ desc: r.comercio || 'Ticket', cantidad: 1, total: r.total, tipo: s.tipo, concepto: s.concepto }); }
+  return { ok: true, ticketId: fid, leido: true, comercio: r.comercio, fecha: r.fecha && r.fecha <= hoy ? r.fecha : hoy, total: r.total, lineas: r.lineas, texto: String(texto).slice(0, 1500) };
+}
+function colsGasto_() {
+  [['GASTOS', ['NOTA', 'TICKET']], ['COMPRAS', ['NOTA', 'TICKET']]].forEach(([n, cols]) => {
+    const h = hoja_(n), enc = h.getRange(1, 1, 1, Math.max(1, h.getLastColumn())).getValues()[0].map(norm_);
+    let last = enc.length;
+    while (last > 0 && !enc[last - 1]) last--;
+    cols.forEach(c => { if (enc.indexOf(c) < 0) { last++; h.getRange(1, last).setValue(c).setFontWeight('bold'); enc[last - 1] = c; } });
+  });
+}
+/** Guarda todos los renglones del ticket: insumos a COMPRAS (inventario) y lo demás a GASTOS. */
+function apiGastoTicket(token, data) {
+  const u = sesion_(token);
+  const lineas = (data.lineas || []).filter(l => num_(l.total) > 0);
+  if (!lineas.length) throw new Error('Agrega al menos un renglón con importe.');
+  colsGasto_();
+  return conLock_(() => {
+    const fecha = fechaMov_(u, data.fecha);
+    const metodo = up_(data.metodo) === 'TRANSFERENCIA' ? 'TRANSFERENCIA' : 'EFECTIVO';
+    const tk = norm_(data.ticketId), com = norm_(data.comercio);
+    let suma = 0;
+    lineas.forEach(l => {
+      const total = r2_(num_(l.total)), cant = num_(l.cantidad) > 0 ? num_(l.cantidad) : 1, nota = [norm_(l.desc), com].filter(Boolean).join(' · ');
+      if (up_(l.tipo) === 'COMPRA') {
+        const prod = up_(l.concepto); if (CONFIG.INSUMOS.indexOf(prod) < 0) throw new Error('Revisa el insumo de "' + l.desc + '".');
+        escribir_('COMPRAS', { 'ID_COMPRA': id_(), 'FECHA': fecha, 'PRODUCTO': prod, 'CANTIDAD': cant, 'TOTAL': total, 'METODO': metodo, 'REGISTRO': u.nombre, 'NOTA': nota, 'TICKET': tk },
+          { 'P.U.': r => '=IF(OR(D' + r + '="", D' + r + '=0), "", F' + r + '/D' + r + ')' });
+      } else {
+        const cat = up_(l.concepto); if (CONFIG.CATEGORIAS_GASTO.indexOf(cat) < 0) throw new Error('Revisa la categoría de "' + l.desc + '".');
+        escribir_('GASTOS', { 'ID_GASTOS': id_(), 'FECHA': fecha, 'GASTO': cat, 'COSTO': r2_(total / cant), 'CANTIDAD': cant, 'TOTAL': total, 'METODO': metodo, 'REGISTRO': u.nombre, 'NOTA': nota, 'TICKET': tk });
+      }
+      suma += total;
+    });
+    log_(u.nombre, 'GASTO CON TICKET', { comercio: com, renglones: lineas.length, total: r2_(suma), ticket: tk });
+    return { ok: true, total: r2_(suma), renglones: lineas.length };
   });
 }
 
@@ -948,7 +1070,21 @@ function pubPedidoInfo(codigo) {
   const g = B.grupoDe[idDeCodigo_(codigo)];
   const precios = {};
   ['GARRAFON', 'GALON'].forEach(p => { precios[p] = g ? precio_(B, g, p) : (B.productos[p] || 0); });
-  return { negocio: CONFIG.NEGOCIO, cliente: g ? { id: norm_(g.principal.ID_CLIENTE), nombre: g.base } : null, precios: precios, hoy: hoyKey_() };
+  return { negocio: CONFIG.NEGOCIO, cliente: g ? { id: norm_(g.principal.ID_CLIENTE), nombre: g.base, codigo: codigoCliente_(norm_(g.principal.ID_CLIENTE)) } : null, precios: precios, hoy: hoyKey_() };
+}
+
+/** Página pública: el cliente escribe su WhatsApp y, si ya es cliente, se le reconoce (solo regresa su nombre y su clave de pedidos). */
+function pubClientePorTelefono(tel) {
+  const t = digitos_(tel).slice(-10);
+  if (t.length !== 10) throw new Error('Escribe tu número de 10 dígitos');
+  const cache = CacheService.getScriptCache(), n = num_(cache.get('tel_busq'));
+  if (n >= 60) throw new Error('Demasiados intentos. Intenta en un rato.');
+  cache.put('tel_busq', String(n + 1), 600);
+  const B = base_();
+  const c = B.clientes.find(x => digitos_(x.TELEFONO).slice(-10) === t && up_(x.ESTATUS_CLIENTE) !== 'INACTIVO');
+  if (!c) return { nuevo: true };
+  const g = B.grupoDe[norm_(c.ID_CLIENTE)];
+  return { nuevo: false, codigo: codigoCliente_(norm_(g.principal.ID_CLIENTE)), nombre: g.base };
 }
 
 function pubPedido(data) {
@@ -961,15 +1097,33 @@ function pubPedido(data) {
   if (garr <= 0 && gal <= 0) throw new Error('Indica cuántos garrafones o galones quieres');
   if (garr > 200 || gal > 200) throw new Error('Para pedidos grandes, márcanos por favor');
   const B = base_();
-  const g = idCli ? B.grupoDe[idCli] : null;
-  const nombre = g ? g.base : norm_(data.nombre).slice(0, 80);
-  if (!g && (!nombre || !norm_(data.telefono) || !norm_(data.direccion))) throw new Error('Escribe tu nombre, teléfono y dirección');
+  let g = idCli ? B.grupoDe[idCli] : null;
+  if (!g && digitos_(data.telefono).slice(-10).length === 10) {
+    const t = digitos_(data.telefono).slice(-10), ya = B.clientes.find(x => digitos_(x.TELEFONO).slice(-10) === t && up_(x.ESTATUS_CLIENTE) !== 'INACTIVO');
+    if (ya) g = B.grupoDe[norm_(ya.ID_CLIENTE)];
+  }
+  const nombre = g ? g.base : up_(data.nombre).slice(0, 80);
+  if (!g && (!nombre || digitos_(data.telefono).slice(-10).length !== 10 || (!norm_(data.direccion) && !(num_(data.lat) && num_(data.lon))))) throw new Error('Escribe tu nombre, tu WhatsApp de 10 dígitos y tu dirección (o comparte tu ubicación)');
+  let nuevoId = '';
+  if (!g) {
+    /* cliente nuevo: se da de alta en ese momento para que entre directo a la ruta y la próxima vez ya no llene sus datos */
+    conLock_(() => {
+      const clientes = leer_('CLIENTES');
+      let precio = 0; leer_('PRODUCTOS').forEach(p => { if (up_(p.ID_PRODUCTO) === 'GARRAFON') precio = num_(p.PRECIO); });
+      const lat = num_(data.lat), lon = num_(data.lon);
+      const gps = lat && lon && km_({ lat: lat, lon: lon }, CONFIG.PLANTA) <= CONFIG.RADIO_GEOCODIFICAR_KM;
+      const pt = gps ? { lat: lat, lon: lon } : geocodificar_(data.direccion);
+      nuevoId = crearCliente_(clientes, { nombre: nombre, precio: precio || 20, direccion: data.direccion, telefono: digitos_(data.telefono).slice(-10), ubicacion: pt ? pt.lat.toFixed(6) + ', ' + pt.lon.toFixed(6) : '' });
+      if (pt && !gps) marcarAprox_(nuevoId);
+    });
+    log_('PEDIDOS', 'CLIENTE NUEVO', { id: nuevoId, nombre: nombre, desde: 'código QR', ubicacion: num_(data.lat) ? 'GPS del cliente' : 'por dirección' });
+  }
   const hoy = hoyKey_();
   let entrega = diaKey_(data.fechaEntrega) || hoy;
   if (entrega < hoy) entrega = hoy;
   const id = id_();
   conLock_(() => escribir_('PEDIDOS', {
-    'ID_PEDIDO': id, 'FECHA_PEDIDO': new Date(), 'ID_CLIENTE': g ? norm_(g.principal.ID_CLIENTE) : '', 'NOMBRE': nombre,
+    'ID_PEDIDO': id, 'FECHA_PEDIDO': new Date(), 'ID_CLIENTE': g ? norm_(g.principal.ID_CLIENTE) : nuevoId, 'NOMBRE': nombre,
     'TELEFONO': norm_(data.telefono).slice(0, 20) || (g ? norm_(g.principal.TELEFONO) : ''), 'DIRECCION': norm_(data.direccion).slice(0, 200) || (g ? norm_(g.principal.DIRECCION) : ''),
     'GARRAFONES': garr, 'GALONES': gal, 'FECHA_ENTREGA': fechaDeKey_(entrega), 'NOTAS': norm_(data.notas).slice(0, 300), 'ESTATUS': 'NUEVO',
   }));
@@ -984,7 +1138,8 @@ function pubPedido(data) {
   if (CONFIG.AVISAR_PEDIDOS_POR_CORREO) {
     try { MailApp.sendEmail(CONFIG.CORREO_DUENO, 'Pedido nuevo: ' + nombre, nombre + ' pidió ' + garr + ' garrafones y ' + gal + ' galones para el ' + entrega + '.' + (data.notas ? '\nNota: ' + data.notas : '')); } catch (e) {}
   }
-  return { ok: true, id: id, entrega: entrega };
+  const idFinal = g ? norm_(g.principal.ID_CLIENTE) : nuevoId;
+  return { ok: true, id: id, entrega: entrega, codigo: idFinal ? codigoCliente_(idFinal) : '', nombre: nombre };
 }
 
 
@@ -2871,6 +3026,8 @@ function autorizarFacturas() {
   hojaNueva_('FISCAL'); hojaNueva_('FACTURAS');
   const f = carpetaFact_(['Constancias']); carpetaFact_(['Facturas']);
   XmlService.parse('<a/>');
+  try { colsGasto_(); carpetaTickets_(hoyKey_().slice(0, 7)); DocumentApp.getActiveDocument; } catch (e) {}
+  Logger.log(typeof Drive === 'undefined' ? 'OJO: falta activar el servicio Drive API para leer tickets.' : 'Lectura de tickets lista.');
   Logger.log('Listo: facturas activadas. Carpeta: ' + f.getParents().next().getUrl());
 }
 

@@ -524,6 +524,22 @@ i.cq-l{background:var(--ok);opacity:.85;top:3px;bottom:3px}
 .db-notas>div{display:grid;grid-template-columns:62px 1fr auto;gap:8px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:13px;align-items:baseline}
 .db-f{color:var(--muted)}.db-p em{font-style:normal;color:var(--warn);font-size:11.5px}.db-notas b{font-family:var(--mono)}
 .db-notas .db-tot{display:flex;justify-content:space-between;border:0;padding-top:9px;font-weight:700}.db-tot b{color:var(--warn);font-size:16px}
+.gx-modo{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gx-m{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:14px;border-radius:18px;border:1px solid var(--line);background:var(--panel);color:var(--ink);text-align:left}
+.gx-m span{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--soft);color:var(--muted)}.gx-m span svg{width:22px;height:22px}
+.gx-m b{font-size:15px}.gx-m small{font-size:12px;color:var(--muted);line-height:1.3}
+.gx-m.on{border-color:var(--agua);background:linear-gradient(160deg,rgba(0,200,255,.14),transparent);box-shadow:0 0 16px rgba(0,200,255,.2)}.gx-m.on span{background:var(--agua);color:#03141c}
+.gx-foto{align-items:center;text-align:center;cursor:pointer;border:1.5px dashed var(--agua);background:var(--agua-soft);padding:30px 18px;gap:8px}
+.gx-cam{width:72px;height:72px;border-radius:22px;display:grid;place-items:center;background:var(--agua);color:#03141c;box-shadow:0 0 26px rgba(0,200,255,.45)}.gx-cam svg{width:38px;height:38px}
+.gx-foto b{font-size:18px;color:var(--agua)}.gx-foto small{color:var(--muted);font-size:13px;line-height:1.4;max-width:300px}
+.gx-tk{display:flex;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:10px}
+.gx-tk img{width:64px;height:84px;object-fit:cover;border-radius:10px;flex:none;background:#fff}
+.gx-tk>div{display:flex;flex-direction:column;gap:3px}.gx-tk b{font-size:15px}.gx-tk small{font-size:12.5px;color:var(--muted)}.gx-t{font-size:13px}.gx-t b{font-family:var(--mono);color:var(--agua)}
+.gx-l{display:flex;flex-direction:column;gap:8px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--agua);border-radius:14px;padding:10px 12px}
+.gx-lh{display:flex;gap:8px}.gx-lh .inp{font-weight:600}
+.gx-x{width:40px;flex:none;border-radius:12px;border:1px solid var(--line);background:var(--soft);color:var(--muted);font-size:15px}
+.gx-lg{display:grid;grid-template-columns:1fr 1.4fr;gap:8px}
+.gx-lg .inp{font-family:var(--mono)}
 </style>
 </head>
 <body>
@@ -1129,23 +1145,107 @@ VISTAS.cobro = (p) => {
 };
 VISTAS.cobro.despues = () => { $('#monto').oninput = e => { S.cobro.monto = e.target.value; }; };
 
+/* ============ gastos: con foto del ticket o manual ============ */
 VISTAS.gasto = () => {
-  S.gasto = S.gasto || { tipo: 'GASTO', metodo: 'EFECTIVO' };
+  S.gasto = S.gasto || { modo: 'TICKET', tipo: 'GASTO', metodo: 'EFECTIVO', tk: null };
   const g = S.gasto;
+  const modo = `<div class="gx-modo">
+    <button class="gx-m ${g.modo === 'TICKET' ? 'on' : ''}" data-gmodo="TICKET"><span>${ICON_FOTO}</span><b>Con ticket</b><small>Toma la foto y se llena solo</small></button>
+    <button class="gx-m ${g.modo === 'MANUAL' ? 'on' : ''}" data-gmodo="MANUAL"><span>${ICON.gasto}</span><b>Sin ticket</b><small>Sueldos, pagos sin comprobante</small></button></div>`;
+  if (g.modo === 'TICKET') {
+    const T = g.tk;
+    const destinos = sel => `<select class="inp gx-dest" data-gl="dest">
+      <optgroup label="Gasto">${S.data.categoriasGasto.map(c => `<option value="GASTO|${esc(c)}"${sel === 'GASTO|' + c ? ' selected' : ''}>${esc(nice(c))}</option>`).join('')}</optgroup>
+      <optgroup label="Insumo (va al inventario)">${S.data.insumos.map(c => `<option value="COMPRA|${esc(c)}"${sel === 'COMPRA|' + c ? ' selected' : ''}>${esc(nice(c))}</option>`).join('')}</optgroup></select>`;
+    if (!T) return marco('Gasto o compra', 'Todo el dinero que sale', `${modo}
+      <label class="card gx-foto"><input type="file" accept="image/*" id="gxFile" hidden><span class="gx-cam">${ICON_FOTO}</span><b>Tomar foto del ticket</b><small>La app lee el ticket y separa cada producto con su cantidad y precio. Tú solo revisas y guardas.</small></label>
+      <p class="muted" style="margin:0;font-size:13px;text-align:center">La foto se guarda en tu Google Drive junto con el gasto.</p>`, true);
+    const suma = T.lineas.reduce((s, l) => s + (+l.total || 0), 0);
+    const cuadra = T.total == null || Math.abs(suma - T.total) < 0.6;
+    return marco('Gasto con ticket', T.comercio ? nice(T.comercio) : 'Revisa y guarda', `
+      <div class="gx-tk">${T.prev ? `<img src="${T.prev}" alt="Ticket">` : ''}<div><b>${T.leido ? (T.lineas.length ? 'Leí ' + T.lineas.length + (T.lineas.length === 1 ? ' renglón' : ' renglones') : 'No encontré renglones') : 'Foto guardada'}</b>
+        <small>${T.leido ? 'Revisa que esté bien y corrige lo que haga falta.' : 'No se pudo leer el texto. Escribe los renglones abajo.'}</small>${T.total != null ? `<span class="gx-t">Total del ticket: <b>${money(T.total)}</b></span>` : ''}</div></div>
+      <div class="card" style="gap:10px">
+        <label class="f">Comercio<input class="inp" id="gxCom" value="${esc(T.comercio || '')}" placeholder="Ej. Ferretería, Pemex"></label>
+        <div class="grid2"><label class="f">Fecha<input class="inp" type="date" id="gxFecha" value="${esc(T.fecha || S.data.hoy)}" max="${S.data.hoy}"></label>
+        <div class="f">Pagado con<div class="seg">${[['EFECTIVO', 'Efectivo'], ['TRANSFERENCIA', 'Transf.']].map(([k, t]) => `<button data-gmetodo="${k}" aria-pressed="${g.metodo === k}">${t}</button>`).join('')}</div></div></div>
+      </div>
+      ${T.lineas.map((l, i) => `<div class="gx-l" data-i="${i}">
+        <div class="gx-lh"><input class="inp" data-gl="desc" value="${esc(l.desc)}" placeholder="Producto"><button class="gx-x" data-gxdel="${i}" aria-label="Quitar renglón">✕</button></div>
+        <div class="gx-lg"><label class="f">Cant.<input class="inp" data-gl="cantidad" inputmode="decimal" value="${esc(l.cantidad)}"></label><label class="f">Importe<input class="inp" data-gl="total" inputmode="decimal" value="${esc(l.total)}"></label></div>
+        <label class="f">Va a${destinos(l.tipo + '|' + l.concepto)}</label></div>`).join('')}
+      <button class="btn sec small" data-act="gxAdd">+ Agregar renglón</button>
+      <div class="${cuadra ? 'okbox' : 'warnbox'}" id="gxSuma">${cuadra ? 'Suma de renglones: ' + money(suma) + (T.total != null ? ' ✓ igual al ticket' : '') : 'Los renglones suman ' + money(suma) + ' y el ticket dice ' + money(T.total) + '. Revisa.'}</div>
+      <button class="btn" data-act="gxGuardar">Guardar ${T.lineas.length} ${T.lineas.length === 1 ? 'renglón' : 'renglones'}</button>
+      <button class="btn sec small" data-act="gxOtra">Tomar otra foto</button>`, true);
+  }
   const opciones = g.tipo === 'GASTO' ? S.data.categoriasGasto : S.data.insumos;
-  return marco('Gasto o compra', 'Todo el dinero que sale', `
+  return marco('Gasto o compra', 'Todo el dinero que sale', `${modo}
     <div class="seg"><button data-gtipo="GASTO" aria-pressed="${g.tipo === 'GASTO'}">Gasto</button><button data-gtipo="COMPRA" aria-pressed="${g.tipo === 'COMPRA'}">Compra de insumo</button></div>
     <div class="card">
       <label class="f">${g.tipo === 'GASTO' ? 'Categoría' : 'Insumo'}<select class="inp" id="gConcepto"><option value="">Elige…</option>${opciones.map(o => `<option>${esc(o)}</option>`).join('')}</select></label>
       ${g.tipo === 'COMPRA' ? '<label class="f">Cantidad (piezas)<input class="inp" id="gCant" inputmode="numeric" placeholder="Ej. 1000"></label>' : ''}
       <label class="f">Total pagado<input class="inp" id="gTotal" inputmode="decimal" placeholder="$0"></label>
       <div class="seg"><button data-gmetodo="EFECTIVO" aria-pressed="${g.metodo === 'EFECTIVO'}">Efectivo</button><button data-gmetodo="TRANSFERENCIA" aria-pressed="${g.metodo === 'TRANSFERENCIA'}">Transferencia</button></div>
-      <label class="f">Nota (opcional)<input class="inp" id="gNota" placeholder="Ej. gasolina camioneta blanca"></label>
+      <label class="f">Nota (opcional)<input class="inp" id="gNota" placeholder="Ej. sueldo de Jessica semana 43"></label>
       ${esDueno() ? `<label class="f">Fecha<input class="inp" type="date" id="gFecha" value="${S.data.hoy || ''}" max="${S.data.hoy || ''}"></label>` : ''}
     </div>
     <button class="btn" data-act="guardarGasto">Guardar</button>
-    <p class="muted" style="margin:0;font-size:13px">Las compras de insumos (tapas, galones, botellas, garrafones nuevos) se guardan en COMPRAS para llevar el inventario.</p>`, true);
+    <p class="muted" style="margin:0;font-size:13px">Siempre que haya ticket, mejor usa “Con ticket”: queda la foto como comprobante.</p>`, true);
 };
+function leerLineasGx() {
+  const T = S.gasto && S.gasto.tk; if (!T) return;
+  document.querySelectorAll('.gx-l').forEach(el => {
+    const l = T.lineas[+el.dataset.i]; if (!l) return;
+    l.desc = el.querySelector('[data-gl=desc]').value; l.cantidad = el.querySelector('[data-gl=cantidad]').value; l.total = el.querySelector('[data-gl=total]').value;
+    const [t, c] = el.querySelector('[data-gl=dest]').value.split('|'); l.tipo = t; l.concepto = c;
+  });
+  const com = $('#gxCom'); if (com) T.comercio = com.value; const f = $('#gxFecha'); if (f) T.fecha = f.value;
+}
+VISTAS.gasto.despues = () => {
+  const f = $('#gxFile');
+  if (f) f.onchange = async () => {
+    const file = f.files[0]; if (!file) return;
+    let a;
+    try { loading(true, 'Preparando la foto…'); a = await comprimirFotoTicket(file); } catch (e) { toast('No se pudo leer la foto', true); return; } finally { loading(false); }
+    try {
+      const r = await run('apiTicketLeer', [S.token, { nombre: 'ticket.jpg', tipo: a.tipo, b64: a.b64 }], 'Leyendo el ticket…');
+      S.gasto.tk = Object.assign(r, { prev: a.prev });
+      if (!r.lineas.length) r.lineas.push({ desc: r.comercio || '', cantidad: 1, total: r.total || '', tipo: 'GASTO', concepto: 'OTRO' });
+      render();
+    } catch (e) {}
+  };
+  document.querySelectorAll('.gx-l input, .gx-l select').forEach(el => { el.oninput = el.onchange = () => { leerLineasGx(); const T = S.gasto.tk, s = T.lineas.reduce((x, l) => x + (+l.total || 0), 0), ok = T.total == null || Math.abs(s - T.total) < 0.6, b = $('#gxSuma'); if (b) { b.className = ok ? 'okbox' : 'warnbox'; b.textContent = ok ? 'Suma de renglones: ' + money(s) + (T.total != null ? ' ✓ igual al ticket' : '') : 'Los renglones suman ' + money(s) + ' y el ticket dice ' + money(T.total) + '. Revisa.'; } }; });
+};
+function comprimirFotoTicket(file) {
+  return new Promise((ok, fail) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, 2000 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      const t = document.createElement('canvas'), kk = 160 / Math.max(c.width, c.height); t.width = c.width * kk; t.height = c.height * kk; t.getContext('2d').drawImage(c, 0, 0, t.width, t.height);
+      ok({ tipo: 'image/jpeg', b64: c.toDataURL('image/jpeg', 0.85).split(',')[1], prev: t.toDataURL('image/jpeg', 0.7) });
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); fail(new Error('foto')); };
+    img.src = url;
+  });
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b || !S.gasto) return;
+  const d = b.dataset, G = S.gasto;
+  try {
+    if (d.gmodo) { G.modo = d.gmodo; render(); }
+    else if (d.gxdel !== undefined) { leerLineasGx(); G.tk.lineas.splice(+d.gxdel, 1); render(); }
+    else if (d.act === 'gxAdd') { leerLineasGx(); G.tk.lineas.push({ desc: '', cantidad: 1, total: '', tipo: 'GASTO', concepto: 'OTRO' }); render(); }
+    else if (d.act === 'gxOtra') { G.tk = null; render(); }
+    else if (d.act === 'gxGuardar') {
+      leerLineasGx(); const T = G.tk;
+      if (!T.lineas.some(l => +l.total > 0)) return toast('Escribe el importe de cada renglón', true);
+      const r = await run('apiGastoTicket', [S.token, { ticketId: T.ticketId, fecha: T.fecha, metodo: G.metodo, comercio: T.comercio, lineas: T.lineas }], 'Guardando el gasto…');
+      toast('Guardado: ' + r.renglones + (r.renglones === 1 ? ' renglón' : ' renglones') + ' por ' + money(r.total)); S.gasto = null; atras();
+    }
+  } catch (err) {}
+});
 
 /* ============ motocarro visto desde arriba (salida y regreso) ============ */
 /* Acomodo real: abajo 32 garrafones (4 × 8), 8 acostados entre los garrafones y las compuertas, y el resto arriba (segunda cama).

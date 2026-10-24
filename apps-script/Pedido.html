@@ -33,6 +33,8 @@ label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;
 .days button[aria-pressed="true"]{background:var(--agua-soft);color:var(--agua);border-color:var(--agua);box-shadow:0 0 14px rgba(0,200,255,.3)}
 .btn{border:0;border-radius:16px;padding:17px;background:var(--agua);color:var(--on);font:800 16px var(--body);width:100%;cursor:pointer;box-shadow:0 0 22px rgba(0,200,255,.45),0 0 60px rgba(0,200,255,.15)}
 .btn:disabled{opacity:.3;box-shadow:none}
+.btn.sec{background:transparent;color:var(--agua);border:1px solid var(--line-2);box-shadow:none;padding:14px;font-weight:700}
+.link{background:none;border:0;color:var(--agua);font:600 14px var(--body);text-decoration:underline;cursor:pointer;padding:4px}
 .tot{display:flex;justify-content:space-between;align-items:baseline;font-variant-numeric:tabular-nums;border-top:1px solid var(--line);padding-top:14px}
 .tot strong{font:700 28px var(--mono);color:var(--agua);text-shadow:0 0 16px rgba(0,200,255,.55)}
 .msg{border-radius:14px;padding:14px;font-weight:600;border:1px solid currentColor}
@@ -69,20 +71,42 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp
 const money = n => '$' + Number(n || 0).toLocaleString('es-MX', {maximumFractionDigits: 2});
 const nice = s => String(s || '').toLowerCase().replace(/(^|\s)(\S)/g, (m, a, b) => a + b.toUpperCase());
 const DIAS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-const S = { g: 0, gl: 0, dia: null, info: null };
+const S = { g: 0, gl: 0, dia: null, info: null, paso: 'tel', tel: '', ubic: null };
+const mem = { get() { try { return JSON.parse(localStorage.getItem('diamante_cliente') || 'null'); } catch (e) { return null; } }, set(v) { try { localStorage.setItem('diamante_cliente', JSON.stringify(v)); } catch (e) {} }, del() { try { localStorage.removeItem('diamante_cliente'); } catch (e) {} } };
 
 function addDays(k, n) { const [y, m, d] = k.split('-').map(Number); const dt = new Date(y, m - 1, d + n); return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0'); }
 function etiqueta(k, i) { const [y, m, d] = k.split('-').map(Number); const dt = new Date(y, m - 1, d); return i === 0 ? 'Hoy' : i === 1 ? 'Mañana' : DIAS[dt.getDay()] + ' ' + d; }
 
+function pasoTelefono() {
+  $('#w').innerHTML = `
+    <div class="hero" style="--w:210px"><img src="${LOGO_FULL}" alt="Purificadora El Diamante">${CHISPAS}</div>
+    <div class="titulo"><h1>Haz tu pedido</h1><p class="muted" style="margin:0">Agua purificada a tu puerta.</p></div>
+    <div class="card"><b>¿Cuál es tu WhatsApp?</b>
+      <p class="muted" style="margin:0;font-size:14px">Si ya eres cliente te reconocemos. Si eres nuevo, solo llenas tus datos esta vez.</p>
+      <input class="inp" id="telP" inputmode="tel" autocomplete="tel" placeholder="311 123 4567" value="${esc(S.tel)}" style="font:700 22px var(--mono);text-align:center;letter-spacing:.04em">
+      <div id="msg"></div>
+      <button class="btn" id="seguir">Continuar</button></div>`;
+  const i = $('#telP'); i.focus(); i.oninput = () => { S.tel = i.value; }; i.onkeydown = e => { if (e.key === 'Enter') buscarTel(); };
+}
+function buscarTel() {
+  const t = String(S.tel || '').replace(/\D/g, '').slice(-10);
+  if (t.length !== 10) { $('#msg').innerHTML = '<div class="msg err">Escribe tu número de 10 dígitos.</div>'; return; }
+  const b = $('#seguir'); b.disabled = true; b.textContent = 'Buscando…';
+  google.script.run.withSuccessHandler(r => {
+    if (r.nuevo) { S.paso = 'nuevo'; S.tel = t; render(); return; }
+    mem.set({ codigo: r.codigo, nombre: r.nombre }); cargar(r.codigo);
+  }).withFailureHandler(err => { $('#msg').innerHTML = `<div class="msg err">${esc(String(err && err.message || err).replace(/^Error:\s*/, ''))}</div>`; b.disabled = false; b.textContent = 'Continuar'; }).pubClientePorTelefono(t);
+}
 function render() {
   const I = S.info, c = I.cliente;
+  if (!c && S.paso === 'tel') return pasoTelefono();
   const dias = [0, 1, 2].map(i => addDays(I.hoy, i));
   S.dia = S.dia || dias[0];
   const total = S.g * I.precios.GARRAFON + S.gl * I.precios.GALON;
   $('#w').innerHTML = `
     <div class="hero" style="--w:210px"><img src="${LOGO_FULL}" alt="Purificadora El Diamante">${CHISPAS}</div>
     <div class="titulo"><h1>Haz tu pedido</h1>
-    ${c ? `<p class="muted" style="margin:0">Hola, <b style="color:var(--ink)">${esc(nice(c.nombre))}</b>. Dinos cuánto necesitas y te lo llevamos.</p>` : '<p class="muted" style="margin:0">Agua purificada a tu puerta. Dinos cuánto necesitas y a dónde.</p>'}</div>
+    ${c ? `<p class="muted" style="margin:0">Hola, <b style="color:var(--ink)">${esc(nice(c.nombre))}</b>. Dinos cuánto necesitas y te lo llevamos.</p><button class="link" id="noSoy">¿No eres tú? Cambiar</button>` : '<p class="muted" style="margin:0">Bienvenido. Llena tus datos una sola vez y la próxima te reconocemos.</p>'}</div>
     <div class="card">
       <div class="step"><div><b>Garrafón 20 L</b><br><span class="muted">${money(I.precios.GARRAFON)} c/u</span></div><div class="ctl"><button data-p="g" data-d="-1" aria-label="Menos garrafones">−</button><output>${S.g}</output><button data-p="g" data-d="1" aria-label="Más garrafones">+</button></div></div>
       <div class="step"><div><b>Galón</b><br><span class="muted">${money(I.precios.GALON)} c/u</span></div><div class="ctl"><button data-p="gl" data-d="-1" aria-label="Menos galones">−</button><output>${S.gl}</output><button data-p="gl" data-d="1" aria-label="Más galones">+</button></div></div>
@@ -91,15 +115,17 @@ function render() {
     <div class="card"><b>¿Cuándo lo quieres?</b>
       <div class="days">${dias.map((k, i) => `<button data-dia="${k}" aria-pressed="${S.dia === k}">${etiqueta(k, i)}</button>`).join('')}</div>
       ${c ? '' : `<label>Nombre o negocio<input class="inp" id="nombre" autocomplete="name"></label>
-      <label>Teléfono (WhatsApp)<input class="inp" id="tel" inputmode="tel" autocomplete="tel"></label>
-      <label>Dirección de entrega<input class="inp" id="dir" autocomplete="street-address"></label>`}
+      <label>WhatsApp<input class="inp" id="tel" inputmode="tel" autocomplete="tel" value="${esc(S.tel)}"></label>
+      <label>Dirección de entrega<input class="inp" id="dir" autocomplete="street-address" placeholder="Calle, número y colonia"></label>
+      <button class="btn sec" id="ubic">${S.ubic ? '✓ Ubicación guardada (±' + Math.round(S.ubic.precision) + ' m)' : '📍 Usar mi ubicación actual'}</button>
+      <p class="muted" style="margin:-6px 0 0;font-size:12.5px">Compártela si estás donde quieres recibir el agua: así el repartidor llega directo.</p>`}
       <label>Notas (opcional)<input class="inp" id="notas" placeholder="Ej. entregar antes de las 11"></label>
     </div>
     <div id="msg"></div>
     <button class="btn" id="enviar" ${S.g + S.gl === 0 ? 'disabled' : ''}>Enviar pedido</button>
     <p class="muted" style="margin:0;font-size:13px;text-align:center">Pagas al recibir. Te confirmamos por WhatsApp.</p>`;
   const keep = {};
-  ['nombre', 'tel', 'dir', 'notas'].forEach(k => { if (S[k] !== undefined && $('#' + k)) $('#' + k).value = S[k]; });
+  ['nombre', 'dir', 'notas'].forEach(k => { if (S[k] !== undefined && $('#' + k)) $('#' + k).value = S[k]; });
   document.querySelectorAll('.inp').forEach(i => i.oninput = () => { S[i.id] = i.value; });
 }
 
@@ -108,14 +134,25 @@ document.addEventListener('click', e => {
   if (b.dataset.p) { S[b.dataset.p] = Math.max(0, S[b.dataset.p] + Number(b.dataset.d)); render(); }
   if (b.dataset.dia) { S.dia = b.dataset.dia; render(); }
   if (b.id === 'enviar') enviar();
+  if (b.id === 'seguir') buscarTel();
+  if (b.id === 'noSoy') { mem.del(); S.info.cliente = null; S.paso = 'tel'; S.tel = ''; render(); }
+  if (b.id === 'ubic') {
+    if (!navigator.geolocation) return;
+    b.textContent = 'Buscando tu ubicación…';
+    navigator.geolocation.getCurrentPosition(p => { S.ubic = { lat: p.coords.latitude, lon: p.coords.longitude, precision: p.coords.accuracy }; render(); },
+      () => { b.textContent = 'No se pudo. Escribe tu dirección'; }, { enableHighAccuracy: true, timeout: 15000 });
+  }
 });
 
 function enviar() {
   const b = $('#enviar'); b.disabled = true; b.textContent = 'Enviando…';
-  const data = { idCliente: CLIENTE_ID, garrafones: S.g, galones: S.gl, fechaEntrega: S.dia, notas: S.notas || '', nombre: S.nombre || '', telefono: S.tel || '', direccion: S.dir || '' };
+  const c = S.info.cliente;
+  const data = { idCliente: c ? c.codigo : '', garrafones: S.g, galones: S.gl, fechaEntrega: S.dia, notas: S.notas || '', nombre: S.nombre || '', telefono: ($('#tel') ? $('#tel').value : S.tel) || '', direccion: S.dir || '', lat: S.ubic ? S.ubic.lat : '', lon: S.ubic ? S.ubic.lon : '' };
   google.script.run.withSuccessHandler(r => {
+    if (r.codigo) mem.set({ codigo: r.codigo, nombre: r.nombre });
     $('#w').innerHTML = `<div class="hero" style="--w:170px"><img src="${LOGO_FULL}" alt="Purificadora El Diamante">${CHISPAS}</div><div class="titulo"><h1>¡Pedido recibido!</h1></div>
       <div class="msg ok">${S.g ? S.g + (S.g === 1 ? ' garrafón' : ' garrafones') : ''}${S.g && S.gl ? ' y ' : ''}${S.gl ? S.gl + (S.gl === 1 ? ' galón' : ' galones') : ''} para el ${r.entrega.split('-').reverse().join('/')}. Te confirmamos por WhatsApp.</div>
+      ${r.codigo ? '<p class="muted" style="margin:0;text-align:center;font-size:14px">Ya quedaste registrado. La próxima vez que escanees el código te reconocemos solo.</p>' : ''}
       <button class="btn" onclick="location.reload()">Hacer otro pedido</button>`;
   }).withFailureHandler(err => {
     $('#msg').innerHTML = `<div class="msg err">${esc(String(err && err.message || err).replace(/^Error:\s*/, ''))}</div>`;
@@ -123,9 +160,12 @@ function enviar() {
   }).pubPedido(data);
 }
 
-google.script.run.withSuccessHandler(info => { S.info = info; render(); })
-  .withFailureHandler(() => { $('#w').innerHTML = '<div class="msg err">No pudimos cargar la página. Intenta de nuevo en un momento.</div>'; })
-  .pubPedidoInfo(CLIENTE_ID);
+function cargar(codigo) {
+  google.script.run.withSuccessHandler(info => { S.info = info; if (info.cliente) mem.set({ codigo: info.cliente.codigo, nombre: info.cliente.nombre }); else if (codigo && !CLIENTE_ID) mem.del(); render(); })
+    .withFailureHandler(() => { $('#w').innerHTML = '<div class="msg err">No pudimos cargar la página. Intenta de nuevo en un momento.</div>'; })
+    .pubPedidoInfo(codigo || '');
+}
+cargar(CLIENTE_ID || ((mem.get() || {}).codigo) || '');
 </script>
 </body>
 </html>
