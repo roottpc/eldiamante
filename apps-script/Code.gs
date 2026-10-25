@@ -9,6 +9,8 @@
 // ======================= CONFIGURACIÓN =======================
 const CONFIG = {
   NEGOCIO: 'Purificadora El Diamante',
+  VERSION: '2026-10-24.2',                                // la app compara esta versión para avisarte si falta actualizar Apps Script
+  URL_APP: 'https://script.google.com/macros/s/AKfycbx_myB0-tQoGIjrci5SZh-UAH_F97YgiN--v5nDSFIBrGupZ5LPpLJfTLWLfvLtKxSw4Q/exec', // liga pública (QR, estado de cuenta, pedidos)
   CORREO_DUENO: 'oscareduardo1295@gmail.com',
   ZONA: 'America/Mazatlan',
   PLANTA: { lat: 21.479675, lon: -104.870394 },   // ubicación de la planta (punto de salida de la ruta)
@@ -413,7 +415,7 @@ function apiInicio(token) {
   const vHoy = B.ventas.filter(v => diaKey_(v.FECHA) === hoy);
   const aHoy = B.abonos.filter(a => diaKey_(a.FECHA) === hoy);
   return {
-    user: u, hoy: hoy, negocio: CONFIG.NEGOCIO,
+    user: u, hoy: hoy, negocio: CONFIG.NEGOCIO, version: CONFIG.VERSION,
     resumenHoy: {
       ventas: r2_(vHoy.reduce((s, v) => s + num_(v.TOTAL), 0)),
       garrafones: vHoy.filter(v => up_(v.PRODUCTO) === 'GARRAFON').reduce((s, v) => s + num_(v.CANTIDAD), 0),
@@ -455,6 +457,8 @@ function apiInicio(token) {
 }
 
 function urlApp_() {
+  /* la liga fija de la implementación principal: getUrl() a veces regresa la liga de prueba (/dev) que solo abre el dueño */
+  if (CONFIG.URL_APP) return CONFIG.URL_APP;
   try { return ScriptApp.getService().getUrl() || ''; } catch (e) { return ''; }
 }
 

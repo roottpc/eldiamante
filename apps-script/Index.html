@@ -2417,6 +2417,8 @@ document.addEventListener('click', async e => {
 });
 
 /* ============ inicio del dueño: resumido y gráfico ============ */
+const VERSION_ESPERADA = '2026-10-24.2';
+function avisoVersion(d) { return d.version === VERSION_ESPERADA ? '' : `<div class="badbox" style="font-size:14px"><b>Apps Script tiene una versión anterior${d.version ? ' (' + esc(d.version) + ')' : ''}.</b> Falta pegar el Code.gs nuevo y crear la Nueva versión en la implementación AKfycbx_myB0. Hasta entonces algunas funciones no jalan.</div>`; }
 const ICON_DEUDA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5"/><circle cx="17" cy="16" r="3"/></svg>';
 function inicioDueno(d) {
   const r = d.resumenHoy, E = d.envases || [], h = E[E.length - 1] || null;
@@ -2453,7 +2455,7 @@ function inicioDueno(d) {
     <div class="hd-ql">${vp.map(g => `<span><i style="background:${COLOR_QUIEN(up(g.nombre))}"></i>${esc(nice(g.nombre))} <b>${g.garrafon}</b></span>`).join('')}</div></div>` : '';
   const app = (go, ic, t, extra, id) => `<button class="hd-app" data-go="${go}"${id ? ` data-id="${id}"` : ''}><span class="hd-ai">${ic}${extra ? `<em>${extra}</em>` : ''}</span><small>${t}</small></button>`;
   return marco('Hola, ' + nice(d.user.nombre), fechaLarga(d.hoy), `
-    ${colaHTML()}${notifHTML()}
+    ${avisoVersion(d)}${colaHTML()}${notifHTML()}
     <section class="hd-hero">
       <div class="hd-top"><div><small>Vendido hoy</small><strong>${money(Math.round(r.ventas))}</strong></div>
         <div class="h7" aria-label="Garrafones vendidos en ruta, últimos 7 días">${barras7}</div></div>
@@ -2469,7 +2471,8 @@ function inicioDueno(d) {
       ${app('salida', ICON.salida, 'Salida')}${app('inventario', ICON_INV, 'Inventario', d.inventarioAlerta || '')}${app('facturas', ICON_FACT, 'Facturas')}${app('corte', ICON.corte, 'Corte')}
       ${app('agenda', ICON.agenda, 'Agenda')}${app('prestamos', ICON.prestamo, 'Préstamos')}${app('calidad', ICON.calidad, 'Calidad')}${app('avisos', ICON_CAMPANA, 'Avisos', AV.noLeidos || '')}
     </div>
-    <div class="btnrow"><button class="btn sec small" style="flex:1" data-act="recargar">Actualizar</button>${PUSH.soporta && PUSH.on ? `<button class="btn sec small" style="flex:1" data-go="notif">Notificaciones</button>` : ''}</div>`);
+    <div class="btnrow"><button class="btn sec small" style="flex:1" data-act="recargar">Actualizar</button>${PUSH.soporta && PUSH.on ? `<button class="btn sec small" style="flex:1" data-go="notif">Notificaciones</button>` : ''}</div>
+    <small class="muted" style="text-align:center;font-size:11px">Servidor: ${esc(d.version || 'versión anterior')} · App: ${VERSION_ESPERADA}</small>`);
 }
 const up = s => String(s || '').toUpperCase();
 
