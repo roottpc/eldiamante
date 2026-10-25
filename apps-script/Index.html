@@ -2115,7 +2115,8 @@ VISTAS.reporte = () => {
     <div class="tot"><span>${g.garrafones} garrafones × $4${g.galones ? ' y ' + g.galones + ' galones × $2' : ''}</span><b>${money(g.comision)}</b></div>
     ${g.prestamo ? `<div class="tot"><span>Préstamo</span><b class="neg">−${money(g.prestamo)}</b></div>` : ''}
     <div class="tot total"><span>Le toca</span><b>${money(g.pago)}</b></div>
-    <small class="muted">Cobró ${money(g.efectivo)} en efectivo${g.abonos ? ' más ' + money(g.abonos) + ' de abonos' : ''} y dejó ${money(g.fiado)} en fiado. Si se paga del efectivo, te entrega <b style="color:var(--ink)">${money(g.entrega)}</b>.</small>
+    ${g.gastos ? `<div class="tot" style="font-size:14px"><span>Gastos de la ruta${(g.gastosLista || []).length ? ' (' + g.gastosLista.map(x => nice(x.concepto).toLowerCase()).join(', ') + ')' : ''}</span><b class="neg">−${money(g.gastos)}</b></div>` : ''}
+    <small class="muted">Cobró ${money(g.efectivo)} en efectivo${g.abonos ? ' más ' + money(g.abonos) + ' de abonos' : ''} y dejó ${money(g.fiado)} en fiado.${g.gastos ? ' Pagó ' + money(g.gastos) + ' de gastos con ese dinero.' : ''} Si se paga del efectivo, te entrega <b style="color:var(--ink)">${money(g.entrega)}</b>.</small>
     ${g.conGps ? `<small class="${g.lejos ? 'mal' : 'bien'}">${g.lejos ? g.lejos + ' de ' + g.ventas + ' ventas registradas lejos del cliente' : 'Todas sus ventas se registraron frente al cliente'}.</small>` : ''}</section>`).join('');
   return marco('Ventas del día', fechaLarga(r.dia), `${chips}
     <section class="card rp-h"><small class="muted">Vendido</small><b class="rp-n">${money(Math.round(r.total))}</b><small class="muted">Fiado ${money(r.fiado)} · Transferencia ${money(r.transferencia)}</small></section>
@@ -2182,7 +2183,7 @@ function imagenDia(r) {
     t('Préstamo', pad + 28, y + 134, 24, '#e9f6ff'); t('−' + m(g.prestamo), W - pad - 28, y + 134, 24, '#ff8fa3', 700, 'right');
     x.strokeStyle = 'rgba(0,200,255,.35)'; x.beginPath(); x.moveTo(pad + 28, y + 156); x.lineTo(W - pad - 28, y + 156); x.stroke();
     t('Le toca', pad + 28, y + 196, 32, '#e9f6ff', 800); t(m(g.pago), W - pad - 28, y + 196, 34, '#3dffa8', 800, 'right');
-    t('Cobró ' + m(g.efectivo) + ' en efectivo y dejó ' + m(g.fiado) + ' fiado. Entrega ' + m(g.entrega) + '.', pad + 28, y + 238, 21, '#7d91a4');
+    t('Cobró ' + m(g.efectivo) + ' en efectivo y dejó ' + m(g.fiado) + ' fiado.' + (g.gastos ? ' Gastó ' + m(g.gastos) + ' en la ruta.' : '') + ' Entrega ' + m(g.entrega) + '.', pad + 28, y + 238, 21, '#7d91a4');
     y += 282;
   });
   t('Purificadora El Diamante', W / 2, H - 30, 20, '#3a4a5a', 600, 'center');
@@ -2202,7 +2203,7 @@ async function compartirImagenDia(r) {
 function textoDia(r) {
   const L = ['*Ventas del ' + fechaLarga(r.dia) + '*', 'Vendido: ' + money(r.total) + ' (fiado ' + money(r.fiado) + ')', '',
     '*Efectivo*', '• Planta: ' + money(r.efectivo.PLANTA + r.abonos.PLANTA), '• Ruta: ' + money(r.efectivo.RUTA + r.abonos.RUTA), '• Oscar: ' + money(r.efectivo.DUENO + r.abonos.DUENO)];
-  r.repartidores.forEach(g => L.push('', '*' + nice(g.nombre) + '*: ' + g.garrafones + ' garrafones, comisión ' + money(g.comision) + (g.prestamo ? ' − préstamo ' + money(g.prestamo) : '') + ' = ' + money(g.pago) + '. Entrega ' + money(g.entrega) + '.'));
+  r.repartidores.forEach(g => L.push('', '*' + nice(g.nombre) + '*: ' + g.garrafones + ' garrafones, comisión ' + money(g.comision) + (g.prestamo ? ' − préstamo ' + money(g.prestamo) : '') + ' = ' + money(g.pago) + '.' + (g.gastos ? ' Gastos de ruta ' + money(g.gastos) + '.' : '') + ' Entrega ' + money(g.entrega) + '.'));
   return L.join('\n');
 }
 

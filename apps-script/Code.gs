@@ -2267,7 +2267,12 @@ function apiReporteDia(token, dia) {
     const efe = r2_(mias.filter(v => v.metodo === 'EFECTIVO').reduce((s, v) => s + v.total, 0));
     const fiado = r2_(mias.filter(v => v.metodo === 'CREDITO').reduce((s, v) => s + v.total, 0));
     const pago = r2_(comision - prestamo);
-    return { nombre: n, garrafones: garr, galones: gal, comision: comision, prestamo: prestamo, pago: pago, efectivo: efe, fiado: fiado, abonos: abonos.RUTA, entrega: r2_(efe + abonos.RUTA - pago),
+    /* gastos que pagó con el dinero de la ruta (gasolina, etc.): se restan de lo que entrega */
+    const gastosLista = leer_('GASTOS').filter(g => diaKey_(g.FECHA) === dia && up_(g.REGISTRO) === n && up_(g.METODO) !== 'TRANSFERENCIA')
+      .map(g => ({ concepto: up_(g.GASTO), total: num_(g.TOTAL) }))
+      .concat(leer_('COMPRAS').filter(c => diaKey_(c.FECHA) === dia && up_(c.REGISTRO) === n && up_(c.METODO) !== 'TRANSFERENCIA').map(c => ({ concepto: up_(c.PRODUCTO), total: num_(c.TOTAL) })));
+    const gastos = r2_(gastosLista.reduce((s, g) => s + g.total, 0));
+    return { nombre: n, garrafones: garr, galones: gal, comision: comision, prestamo: prestamo, pago: pago, efectivo: efe, fiado: fiado, abonos: abonos.RUTA, gastos: gastos, gastosLista: gastosLista, entrega: r2_(efe + abonos.RUTA - pago - gastos),
       enPlanta: mias.filter(v => v.lugar && v.lugar.planta < 150).length, lejos: mias.filter(v => v.lugar && v.lugar.cliente != null && v.lugar.cliente > CONFIG.DISTANCIA_ALERTA_M).length, conGps: mias.filter(v => v.lugar).length, ventas: mias.length };
   }).filter(r => r.ventas);
   return {
