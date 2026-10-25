@@ -9,7 +9,7 @@
 // ======================= CONFIGURACIÓN =======================
 const CONFIG = {
   NEGOCIO: 'Purificadora El Diamante',
-  VERSION: '2026-10-24.2',                                // la app compara esta versión para avisarte si falta actualizar Apps Script
+  VERSION: '2026-10-24.3',                                // la app compara esta versión para avisarte si falta actualizar Apps Script
   URL_APP: 'https://script.google.com/macros/s/AKfycbx_myB0-tQoGIjrci5SZh-UAH_F97YgiN--v5nDSFIBrGupZ5LPpLJfTLWLfvLtKxSw4Q/exec', // liga pública (QR, estado de cuenta, pedidos)
   CORREO_DUENO: 'oscareduardo1295@gmail.com',
   ZONA: 'America/Mazatlan',
@@ -420,7 +420,7 @@ function apiInicio(token) {
       ventas: r2_(vHoy.reduce((s, v) => s + num_(v.TOTAL), 0)),
       garrafones: vHoy.filter(v => up_(v.PRODUCTO) === 'GARRAFON').reduce((s, v) => s + num_(v.CANTIDAD), 0),
       galones: vHoy.filter(v => up_(v.PRODUCTO) === 'GALON').reduce((s, v) => s + num_(v.CANTIDAD), 0),
-      cobrado: r2_(aHoy.reduce((s, a) => s + num_(a.MONTO), 0)),
+      cobrado: r2_(aHoy.filter(a => up_(a.METODO) !== 'AJUSTE').reduce((s, a) => s + num_(a.MONTO), 0)),
       clientes: new Set(vHoy.map(v => norm_(v.ID_CLIENTE))).size,
     },
     clientes: clientes,
@@ -927,6 +927,11 @@ function apiRegreso(token, data) {
 }
 
 /** Lo que debería entregarse hoy, calculado con ventas, abonos y gastos del día. */
+function abonoDeDueno_(a, duenos) {
+  const m = norm_(a.COMENTARIOS).match(/App · ([^·]+)/);
+  if (!m) return true;   /* los que se capturan a mano en la hoja los registra el dueño */
+  return duenos.indexOf(up_(m[1])) >= 0;
+}
 function cuentasDia_(dia) {
   const P = CONFIG.ID_CLIENTE_PLANTA;
   const v = leer_('VENTAS').filter(x => diaKey_(x.FECHA) === dia);
@@ -956,7 +961,9 @@ function cuentasDia_(dia) {
     efectivoPlanta: sum(planta.filter(x => up_(x.METODO) === 'EFECTIVO'), x => num_(x.TOTAL)),
     transferencias: sum(v.filter(x => up_(x.METODO) === 'TRANSFERENCIA'), x => num_(x.TOTAL)),
     credito: sum(v.filter(x => up_(x.METODO) === 'CREDITO'), x => num_(x.TOTAL)),
-    abonosEfectivo: sum(a.filter(x => ['TRANSFERENCIA', 'AJUSTE'].indexOf(up_(x.METODO)) < 0), x => num_(x.MONTO)),
+    /* los abonos que cobra el dueño los trae él: no se le piden a planta ni a ruta */
+    abonosEfectivo: sum(a.filter(x => ['TRANSFERENCIA', 'AJUSTE'].indexOf(up_(x.METODO)) < 0 && !abonoDeDueno_(x, duenos)), x => num_(x.MONTO)),
+    abonosDueno: sum(a.filter(x => ['TRANSFERENCIA', 'AJUSTE'].indexOf(up_(x.METODO)) < 0 && abonoDeDueno_(x, duenos)), x => num_(x.MONTO)),
     abonosTransferencia: sum(a.filter(x => up_(x.METODO) === 'TRANSFERENCIA'), x => num_(x.MONTO)),
     // solo lo que se pagó con el efectivo del día; lo que registró el dueño lo pagó él aparte
     gastosEfectivo: sum(gs.filter(delDia), x => num_(x.TOTAL)) + sum(cs.filter(delDia), x => num_(x.TOTAL)),
@@ -968,7 +975,12 @@ function cuentasDia_(dia) {
     viajes: sal.length,
     viajesSinRegreso: sal.filter(s => !reg.some(r => norm_(r.ID_SALIDA) === norm_(s.ID_SALIDA))).map(s => s['RUTA #']),
   };
-  c.esperado = r2_(c.efectivoRuta + c.efectivoPlanta + c.abonosEfectivo - c.comision - c.gastosEfectivo);
+  /* el descuento del préstamo del repartidor se queda en caja: se le paga comisión menos préstamo */
+  let prestamo = 0;
+  try { prestamos_(dia).filter(t => t.puesto === 'RUTA' || /GAEL/i.test(t.nombre)).forEach(t => { if (c.comision > 0) prestamo += t.descontadoHoy || (t.saldo > 0 ? Math.min(t.descuento, t.saldo) : 0); }); } catch (e) {}
+  c.prestamo = r2_(Math.min(prestamo, c.comision));
+  c.pagoRuta = r2_(c.comision - c.prestamo);
+  c.esperado = r2_(c.efectivoRuta + c.efectivoPlanta + c.abonosEfectivo - c.pagoRuta - c.gastosEfectivo);
   c.garrafonesFaltantes = c.salieron ? c.salieron - c.regresaronLlenos - c.rotos - c.garrafonesRuta : 0;
   c.galonesFaltantes = c.galonesSalieron ? c.galonesSalieron - c.galonesRegreso - c.galonesRuta : 0;
   return c;
