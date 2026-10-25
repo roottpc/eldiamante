@@ -2087,6 +2087,7 @@ function inicioRuta(d) {
     ${c && c.registrada ? `<div class="card carga1"><small class="muted">Traes en el motocarro</small><b>${Math.max(0, c.garrafones)} garrafones${c.galones > 0 ? ` · ${c.galones} galones` : ''}</b></div>` : '<div class="warnbox">Todavía no hay salida registrada hoy. Pide a planta que la registre antes de vender.</div>'}
     <button class="big uno alto" data-go="elegir">${ICON.venta}Registrar venta</button>
     <button class="big uno alto" data-go="ruta">${ICON.ruta}Ruta</button>
+    <button class="big uno" data-go="gasto">${ICON.gasto}Gasto de la ruta<small style="display:block;font-size:12px;font-weight:500;color:var(--muted)">Gasolina u otro gasto pagado con el dinero de la ruta</small></button>
     <div class="warnbox">Registra cada venta frente al cliente y mándale su ticket.</div>
     ${d.prestamo ? prestamoHTML(d.prestamo) : ''}`);
 }
