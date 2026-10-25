@@ -667,7 +667,7 @@ function invalidar() {
   ['rep', 'sob', 'deu', 'inv', 'control', 'hist', 'sep', 'prestamos', 'agenda'].forEach(k => { if (S[k] && typeof S[k] === 'object' && 'data' in S[k]) S[k].data = null; });
   if (S.fac && S.vista !== 'facturaNueva' && S.vista !== 'fiscal') S.fac.data = null;
   if (S.mapa) { S.mapa.vendido = null; S.mapa.zonas = null; S.mapa.manana = null; }
-  S.precorte = null; S.ruta = null; S.agenda = S.agenda && S.agenda.data !== undefined ? S.agenda : null; S.prestamos = S.prestamos && S.prestamos.data !== undefined ? S.prestamos : null;
+  if (S.vista !== 'corte') S.precorte = null; S.ruta = null; S.agenda = S.agenda && S.agenda.data !== undefined ? S.agenda : null; S.prestamos = S.prestamos && S.prestamos.data !== undefined ? S.prestamos : null;
   clearTimeout(REFRESCO); REFRESCO = setTimeout(() => { if (S.token) cargar(true).then(() => { if (S.vista === 'inicio') render(); }); }, 400);
 }
 function call(fn, ...args) {
@@ -1403,7 +1403,7 @@ VISTAS.corte = (p) => {
 };
 VISTAS.corte.despues = () => {
   const i = $('#entregado'); if (!i) return;
-  const f = () => { const c = S.precorte; if (i.value === '') { $('#dif').innerHTML = ''; return; } const d = Number(i.value) - c.esperado; $('#dif').innerHTML = Math.abs(d) < 1 ? '<div class="okbox">Cuadra.</div>' : `<div class="badbox">${d < 0 ? 'Faltan' : 'Sobran'} ${money(Math.abs(d))}</div>`; };
+  const c0 = S.precorte; const f = () => { const c = S.precorte || c0; if (!c || !$('#dif')) return; if (i.value === '') { $('#dif').innerHTML = ''; return; } const d = Number(i.value) - c.esperado; $('#dif').innerHTML = Math.abs(d) < 1 ? '<div class="okbox">Cuadra.</div>' : `<div class="badbox">${d < 0 ? 'Faltan' : 'Sobran'} ${money(Math.abs(d))}</div>`; };
   i.oninput = f; f();
 };
 
