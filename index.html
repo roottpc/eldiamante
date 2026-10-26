@@ -1394,6 +1394,7 @@ VISTAS.corte = (p) => {
     <div class="card"><div class="lbl">Efectivo</div>
       ${linea('Ventas en ruta (efectivo)', c.efectivoRuta)}${linea('Ventas en planta (efectivo)', c.efectivoPlanta)}${linea('Cobros de fiado en efectivo', c.abonosEfectivo)}
       ${linea('Comisión de ruta' + (c.prestamo ? ' (' + money(c.comision) + ' − préstamo ' + money(c.prestamo) + ')' : ''), c.pagoRuta != null ? c.pagoRuta : c.comision, true)}${linea('Gastos pagados en efectivo', c.gastosEfectivo, true)}
+      ${(c.repartidores || []).map(g => `<div class="tot" style="font-size:14px"><span>Entrega ${esc(nice(g.nombre))}</span><b>${money(g.entrega)}</b></div>`).join('')}${c.repartidores ? `<div class="tot" style="font-size:14px"><span>Entrega planta</span><b>${money(c.plantaEntrega || 0)}</b></div>` : ''}
       <div class="tot" style="border-top:2px solid var(--line);padding-top:8px"><span>Debe entregarse</span><strong>${money(c.esperado)}</strong></div>
       <p class="muted" style="margin:0;font-size:13px">Aparte: transferencias ${money(c.transferencias + c.abonosTransferencia)} · fiado ${money(c.credito)}${c.abonosDueno ? ' · abonos que cobró Oscar ' + money(c.abonosDueno) : ''}${c.efectivoDueno ? ' · ventas de Oscar ' + money(c.efectivoDueno) : ''}</p>
       <label class="f">Efectivo que se entrega<input class="inp" id="entregado" inputmode="decimal" value="${esc(p.entregado || '')}" placeholder="$0"></label>
@@ -2158,6 +2159,8 @@ VISTAS.reporte = () => {
     <div class="hv-ley">${['GAEL', 'JESSICA', 'BLANCA', 'OSCAR'].map(n => `<span><i style="background:${COLOR_QUIEN(n)}"></i>${nice(n)}</span>`).join('')}</div>
     <section class="card" style="gap:0;padding:6px 14px">${filas || '<p class="muted">No hubo ventas este día.</p>'}</section>
     ${rep}
+    ${r.planta ? `<section class="card"><h3>Lo de planta</h3><div class="tot"><span>Efectivo${r.planta.abonos ? ' + abonos' : ''}</span><b>${money(r.planta.efectivo + r.planta.abonos)}</b></div>${r.planta.gastos ? `<div class="tot"><span>Gastos pagados en planta</span><b class="neg">−${money(r.planta.gastos)}</b></div>` : ''}<div class="tot total"><span>Entrega planta</span><b>${money(r.planta.entrega)}</b></div></section>
+    <section class="card"><div class="tot total"><span>Total que te entregan hoy (va en el corte)</span><b>${money(r.totalEntrega)}</b></div></section>` : ''}
     <button class="btn wa" data-act="repFoto">${ICON_WA}Mandar foto por WhatsApp</button>
     <small class="muted" style="text-align:center">Se arma una imagen como esta pantalla y eliges a quién mandarla.</small>`, true);
 };
@@ -2448,7 +2451,7 @@ document.addEventListener('click', async e => {
 });
 
 /* ============ inicio del dueño: resumido y gráfico ============ */
-const VERSION_ESPERADA = '2026-10-25.1';
+const VERSION_ESPERADA = '2026-10-26.1';
 function avisoVersion(d) { return d.version === VERSION_ESPERADA ? '' : `<div class="badbox" style="font-size:14px"><b>Apps Script tiene una versión anterior${d.version ? ' (' + esc(d.version) + ')' : ''}.</b> Falta pegar el Code.gs nuevo y crear la Nueva versión en la implementación AKfycbx_myB0. Hasta entonces algunas funciones no jalan.</div>`; }
 const ICON_DEUDA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5"/><circle cx="17" cy="16" r="3"/></svg>';
 function inicioDueno(d) {
