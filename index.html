@@ -660,7 +660,7 @@ function loading(on, msg) { $('#loading').hidden = !on; $('#loadingMsg').textCon
 /* En Apps Script se usa google.script.run; en la app instalable se habla con el servidor por internet (API_URL). */
 const EN_GAS = typeof google !== 'undefined' && google.script && google.script.run;
 /* Después de guardar algo, todas las pestañas se vuelven a calcular con los datos nuevos (nada se queda viejo). */
-const SOLO_LECTURA = /^(apiInicio|apiAvisos|apiRuta|apiCarga|apiPanel|apiReporteDia|apiSobres|apiDeudas|apiInventario|apiFacturas|apiFacturaArchivo|apiFacturasZip|apiControl|apiVentasHistorial|apiEnvases|apiZonas|apiPreCorte|apiPushClave|apiComprobanteVer|apiVerificaciones|apiTicketLeer|apiPrestamos|apiAgenda|apiSeparador|apiLogin|apiLogout|apiTicket|apiAvisoLeido|apiPush[A-Za-z]*|pub)/;
+const SOLO_LECTURA = /^(apiInicio|apiCalidadBitacora|apiAvisos|apiRuta|apiCarga|apiPanel|apiReporteDia|apiSobres|apiDeudas|apiInventario|apiFacturas|apiFacturaArchivo|apiFacturasZip|apiControl|apiVentasHistorial|apiEnvases|apiZonas|apiPreCorte|apiPushClave|apiComprobanteVer|apiVerificaciones|apiTicketLeer|apiPrestamos|apiAgenda|apiSeparador|apiLogin|apiLogout|apiTicket|apiAvisoLeido|apiPush[A-Za-z]*|pub)/;
 let REFRESCO = null;
 function invalidar() {
   if (S.panel) S.panel.data = null;
@@ -1412,8 +1412,10 @@ VISTAS.calidad = () => marco('Calidad del agua', 'Bitácora de planta', `
     <label class="f">Punto de muestreo<select class="inp" id="qPunto">${S.data.puntosCalidad.map(p => `<option>${esc(p)}</option>`).join('')}</select></label>
     <div class="grid2"><label class="f">Cloro residual (mg/L)<input class="inp" id="qCloro" inputmode="decimal"></label><label class="f">TDS (ppm)<input class="inp" id="qTds" inputmode="decimal"></label>
     <label class="f">pH<input class="inp" id="qPh" inputmode="decimal"></label></div>
+    <label class="f">Observaciones (opcional)<input class="inp" id="qObs" maxlength="200" placeholder="Ej. se cambió cartucho de 5 micras"></label>
   </div>
-  <button class="btn" data-act="guardarCalidad">Guardar lectura</button>`, true);
+  <button class="btn" data-act="guardarCalidad">Guardar lectura</button>
+  <button class="btn sec" data-go="bitacora">📋 Ver y mandar bitácoras</button>`, true);
 
 VISTAS.nuevoCliente = (p) => {
   const ped = p.pedido ? S.data.pedidos.find(x => x.id === p.pedido) : null;
@@ -2446,7 +2448,7 @@ document.addEventListener('click', async e => {
 });
 
 /* ============ inicio del dueño: resumido y gráfico ============ */
-const VERSION_ESPERADA = '2026-10-24.3';
+const VERSION_ESPERADA = '2026-10-25.1';
 function avisoVersion(d) { return d.version === VERSION_ESPERADA ? '' : `<div class="badbox" style="font-size:14px"><b>Apps Script tiene una versión anterior${d.version ? ' (' + esc(d.version) + ')' : ''}.</b> Falta pegar el Code.gs nuevo y crear la Nueva versión en la implementación AKfycbx_myB0. Hasta entonces algunas funciones no jalan.</div>`; }
 const ICON_DEUDA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5"/><circle cx="17" cy="16" r="3"/></svg>';
 function inicioDueno(d) {
@@ -2597,6 +2599,186 @@ document.addEventListener('click', async e => {
   const d = b.dataset;
   if (d.deu) { S.deu.abierto = S.deu.abierto === d.deu ? null : d.deu; render(); }
   else if (d.act === 'deuImg') { const c = S.deu.data.clientes.find(x => x.id === d.id); if (c) { try { loading(true, 'Armando la imagen…'); await compartirDeuda(c, S.deu.data); } finally { loading(false); } } }
+});
+
+/* ============ bitácora de calidad del agua ============ */
+const LIM_CAL = { ph: [6.5, 8.5], tds: 500 };
+const PUNTOS_EVAL = /LLENADORA|PRODUCTO/;
+function evalCal(r) {
+  if (!PUNTOS_EVAL.test(r.punto)) return '';
+  const malo = (r.ph != null && (r.ph < LIM_CAL.ph[0] || r.ph > LIM_CAL.ph[1])) || (r.tds != null && r.tds > LIM_CAL.tds);
+  return malo ? 'NO CUMPLE' : 'CUMPLE';
+}
+const keyDia = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+function rangoBit(tipo, ref) {
+  const d = new Date(ref + 'T12:00:00');
+  if (tipo === 'dia') return [ref, ref];
+  if (tipo === 'semana') { const w = (d.getDay() + 6) % 7; const a = new Date(d); a.setDate(d.getDate() - w); const b = new Date(a); b.setDate(a.getDate() + 6); return [keyDia(a), keyDia(b)]; }
+  if (tipo === 'mes') return [keyDia(new Date(d.getFullYear(), d.getMonth(), 1)), keyDia(new Date(d.getFullYear(), d.getMonth() + 1, 0))];
+  return [ref, ref];
+}
+const fmtCorto = k => { const [y, m, d] = k.split('-').map(Number); return String(d).padStart(2, '0') + '/' + String(m).padStart(2, '0') + '/' + y; };
+function tituloPeriodo(B) {
+  if (B.desde === B.hasta) { const f = fechaLarga(B.desde); return f.charAt(0).toUpperCase() + f.slice(1); }
+  return 'Del ' + fmtCorto(B.desde) + ' al ' + fmtCorto(B.hasta);
+}
+
+VISTAS.bitacora = () => {
+  const B = S.bit || (S.bit = { tipo: 'dia', ref: S.data.hoy, desde: S.data.hoy, hasta: S.data.hoy, data: null, imgs: null });
+  const chip = (t, l) => `<button class="btn ${B.tipo === t ? '' : 'sec'} small" style="width:auto" data-act="bitTipo" data-t="${t}">${l}</button>`;
+  const ctrl = B.tipo === 'rango'
+    ? `<div class="grid2"><label class="f">Desde<input class="inp" type="date" id="bitDesde" value="${B.desde}"></label><label class="f">Hasta<input class="inp" type="date" id="bitHasta" value="${B.hasta}"></label></div>`
+    : `<label class="f">${B.tipo === 'dia' ? 'Día' : B.tipo === 'semana' ? 'Cualquier día de la semana' : 'Cualquier día del mes'}<input class="inp" type="date" id="bitRef" value="${B.ref}"></label>`;
+  let cuerpo = '';
+  if (!B.data) {
+    setTimeout(() => cargarBit(), 0);
+    cuerpo = '<p class="muted">Cargando bitácora…</p>';
+  } else {
+    const n = B.data.registros.length;
+    const malos = B.data.registros.filter(r => evalCal(r) === 'NO CUMPLE').length;
+    cuerpo = `<div class="card"><div class="tot"><span>${esc(tituloPeriodo(B.data))}</span><b>${n} muestra${n === 1 ? '' : 's'}</b></div>
+      ${malos ? `<div class="badbox">${malos} muestra${malos === 1 ? '' : 's'} fuera de rango</div>` : (n ? '<div class="okbox">Todas las muestras de producto dentro de rango.</div>' : '<div class="warnbox">No hay muestras registradas en este periodo.</div>')}</div>
+      <div class="grid2"><button class="btn" data-act="bitImg">🖼️ Imagen por WhatsApp</button><button class="btn" data-act="bitPdf">📄 PDF por WhatsApp</button></div>
+      <div class="lbl" style="margin-top:6px">Vista previa</div>
+      <div id="bitPrev">${(B.imgs || []).map(u => `<img src="${u}" alt="Bitácora" style="width:100%;border-radius:8px;margin-bottom:10px;box-shadow:0 2px 12px rgba(0,0,0,.4);background:#fff">`).join('') || '<p class="muted">Armando la vista previa…</p>'}</div>`;
+  }
+  return marco('Bitácoras de calidad', 'Por día, semana, mes o rango', `
+    <div class="card"><div style="display:flex;gap:8px;flex-wrap:wrap">${chip('dia', 'Día')}${chip('semana', 'Semana')}${chip('mes', 'Mes')}${chip('rango', 'Rango')}</div>
+    ${ctrl}<button class="btn sec" data-act="bitVer">Ver bitácora</button></div>${cuerpo}`, true);
+};
+async function cargarBit() {
+  const B = S.bit;
+  try {
+    const r = await run('apiCalidadBitacora', [S.token, B.desde, B.hasta], 'Buscando muestras…');
+    B.data = r; B.imgs = null; render();
+    const pags = await paginasBit(r);
+    B.canvases = pags; B.imgs = pags.map(c => c.toDataURL('image/png'));
+    if (S.vista === 'bitacora') render();
+  } catch (e) { B.data = { desde: B.desde, hasta: B.hasta, registros: [], generado: '' }; render(); }
+}
+
+async function paginasBit(D) {
+  const W = 1275, H = 1650, M = 70, logo = await cargarImg(LOGO_FULL);
+  const AZ = '#0b2a4a', AZ2 = '#1565a8', GR = '#5b6773', LN = '#c9d3dc';
+  const cols = [['Fecha', 120], ['Hora', 70], ['Punto de muestreo', 205], ['Cloro\nmg/L', 82], ['pH', 70], ['SDT\nppm', 82], ['Resultado', 120], ['Responsable', 140], ['Observaciones', 246]];
+  const filas = D.registros;
+  const porPag1 = 26, porPag = 34;
+  const grupos = [];
+  if (!filas.length) grupos.push([]);
+  else { grupos.push(filas.slice(0, porPag1)); for (let i = porPag1; i < filas.length; i += porPag) grupos.push(filas.slice(i, i + porPag)); }
+  const total = grupos.length;
+  const prod = filas.filter(r => PUNTOS_EVAL.test(r.punto));
+  const prom = k => { const v = prod.map(r => r[k]).filter(x => x != null); return v.length ? (v.reduce((a, b) => a + b, 0) / v.length) : null; };
+  const malos = filas.filter(r => evalCal(r) === 'NO CUMPLE').length;
+  const dias = new Set(filas.map(r => r.fecha)).size;
+  const folio = 'BC-' + D.desde.replace(/-/g, '') + (D.hasta !== D.desde ? '-' + D.hasta.replace(/-/g, '').slice(4) : '');
+  return grupos.map((g, p) => {
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const x = cv.getContext('2d');
+    const F = (s, w) => (w || 400) + ' ' + s + 'px Georgia,"Times New Roman",serif';
+    const FS = (s, w) => (w || 400) + ' ' + s + 'px "Helvetica Neue",Arial,sans-serif';
+    const t = (s, X, Y, f, c, al) => { x.font = f; x.fillStyle = c; x.textAlign = al || 'left'; x.fillText(s, X, Y); };
+    x.fillStyle = '#fff'; x.fillRect(0, 0, W, H);
+    x.fillStyle = AZ; x.fillRect(0, 0, W, 150);
+    x.fillStyle = AZ2; x.fillRect(0, 150, W, 6);
+    if (logo) { const lh = 104, lw = logo.width / logo.height * lh; x.drawImage(logo, M - 10, 23, lw, lh); }
+    t('PURIFICADORA EL DIAMANTE', W - M, 62, FS(30, 700), '#fff', 'right');
+    t('Agua purificada · Tepic, Nayarit', W - M, 96, FS(20), '#cfe2f3', 'right');
+    t('Folio ' + folio + '   ·   Hoja ' + (p + 1) + ' de ' + total, W - M, 128, FS(17), '#9fc3e2', 'right');
+    let y = 214;
+    t('BITÁCORA DE CONTROL DE CALIDAD DEL AGUA', W / 2, y, F(32, 700), AZ, 'center');
+    y += 38; t('Periodo: ' + tituloPeriodo(D), W / 2, y, FS(20), GR, 'center');
+    y += 28;
+    if (p === 0) {
+      const res = [['Muestras', String(filas.length)], ['Días con registro', String(dias)], ['pH promedio (producto)', prom('ph') == null ? '—' : prom('ph').toFixed(2)], ['SDT promedio (producto)', prom('tds') == null ? '—' : Math.round(prom('tds')) + ' ppm'], ['Fuera de rango', String(malos)]];
+      const bw = (W - 2 * M) / res.length;
+      res.forEach(([a, b], i) => {
+        const X = M + i * bw;
+        x.strokeStyle = LN; x.lineWidth = 1.5; x.strokeRect(X + 4, y, bw - 8, 86);
+        t(b, X + bw / 2, y + 46, FS(30, 700), a === 'Fuera de rango' && malos ? '#b3261e' : AZ, 'center');
+        t(a, X + bw / 2, y + 74, FS(15), GR, 'center');
+      });
+      y += 118;
+    } else y += 20;
+    const tw = cols.reduce((a, c) => a + c[1], 0), sx = (W - 2 * M) / tw;
+    const hh = 52; x.fillStyle = AZ; x.fillRect(M, y, W - 2 * M, hh);
+    let cx = M;
+    cols.forEach(([n, w]) => { const ls = n.split('\n'); ls.forEach((l, i) => t(l, cx + w * sx / 2, y + (ls.length === 1 ? 32 : 22 + i * 20), FS(16, 700), '#fff', 'center')); cx += w * sx; });
+    y += hh;
+    const rh = 34;
+    if (!g.length) { t('Sin muestras registradas en este periodo.', W / 2, y + 50, FS(19, 400), GR, 'center'); y += 80; }
+    let prevF = null;
+    g.forEach((r, i) => {
+      if (i % 2) { x.fillStyle = '#f2f6fa'; x.fillRect(M, y, W - 2 * M, rh); }
+      if (prevF && prevF !== r.fecha) { x.strokeStyle = AZ2; x.lineWidth = 2; x.beginPath(); x.moveTo(M, y); x.lineTo(W - M, y); x.stroke(); }
+      const ev = evalCal(r);
+      const val = [prevF === r.fecha ? '' : fmtCorto(r.fecha), r.hora, nice(r.punto), r.cloro == null ? '—' : r.cloro.toFixed(2), r.ph == null ? '—' : r.ph.toFixed(1), r.tds == null ? '—' : String(Math.round(r.tds)), ev || 'N/A', nice(r.resp), r.obs || ''];
+      cx = M;
+      val.forEach((v, j) => {
+        const w = cols[j][1] * sx; let s = String(v); x.font = FS(16, j === 6 ? 700 : 400);
+        while (s.length > 1 && x.measureText(s).width > w - 14) s = s.slice(0, -2) + '…';
+        const col = j === 6 ? (ev === 'NO CUMPLE' ? '#b3261e' : ev === 'CUMPLE' ? '#1b7a3d' : GR) : '#1d2630';
+        t(s, j >= 7 || j === 2 ? cx + 8 : cx + w / 2, y + 23, FS(16, j === 6 ? 700 : 400), col, j >= 7 || j === 2 ? 'left' : 'center');
+        cx += w;
+      });
+      x.strokeStyle = LN; x.lineWidth = 1; x.beginPath(); x.moveTo(M, y + rh); x.lineTo(W - M, y + rh); x.stroke();
+      prevF = r.fecha; y += rh;
+    });
+    x.strokeStyle = AZ; x.lineWidth = 1.5; x.strokeRect(M, y - (g.length ? g.length * rh : 80) - hh, W - 2 * M, (g.length ? g.length * rh : 80) + hh);
+    if (p === total - 1) {
+      y = Math.max(y + 40, H - 330);
+      t('Criterios de aceptación (producto terminado / llenadora): pH ' + LIM_CAL.ph[0] + ' a ' + LIM_CAL.ph[1] + ' · Sólidos disueltos totales ≤ ' + LIM_CAL.tds + ' ppm.', M, y, FS(15), GR);
+      t('Cloro residual: registro informativo. Referencia: NOM-201-SSA1-2015 y NOM-127-SSA1. N/A = punto de control intermedio.', M, y + 24, FS(15), GR);
+      y += 120;
+      [['Elaboró', 'Responsable de planta'], ['Revisó', 'Oscar · Propietario']].forEach(([a, b], i) => {
+        const X = M + 60 + i * ((W - 2 * M) / 2);
+        const w = (W - 2 * M) / 2 - 120;
+        x.strokeStyle = '#1d2630'; x.lineWidth = 1.2; x.beginPath(); x.moveTo(X, y); x.lineTo(X + w, y); x.stroke();
+        t(a, X + w / 2, y + 26, FS(17, 700), '#1d2630', 'center'); t(b, X + w / 2, y + 50, FS(15), GR, 'center');
+      });
+    }
+    x.fillStyle = AZ; x.fillRect(0, H - 46, W, 46);
+    t('Documento generado por el sistema de control El Diamante · ' + (D.generado || ''), M, H - 17, FS(14), '#cfe2f3');
+    t('Hoja ' + (p + 1) + ' / ' + total, W - M, H - 17, FS(14), '#cfe2f3', 'right');
+    return cv;
+  });
+}
+
+function cargarJsPdf() {
+  if (window.jspdf) return Promise.resolve(window.jspdf);
+  return new Promise((ok, fail) => { const s = document.createElement('script'); s.src = 'https:' + '/' + '/cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'; s.onload = () => ok(window.jspdf); s.onerror = () => fail(new Error('No se pudo cargar el generador de PDF. Revisa tu internet.')); document.head.appendChild(s); });
+}
+async function compartirArchivos(files, titulo) {
+  if (navigator.canShare && navigator.canShare({ files: files })) {
+    try { await navigator.share({ files: files, title: titulo }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  files.forEach(f => { const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); });
+  toast('Se descargó el archivo. Ábrelo en WhatsApp para mandarlo.');
+}
+const nomBit = B => 'bitacora-calidad-' + B.data.desde + (B.data.hasta !== B.data.desde ? '_' + B.data.hasta : '');
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b || S.vista !== 'bitacora' || !S.bit) return;
+  const d = b.dataset, B = S.bit;
+  if (d.act === 'bitTipo') { B.tipo = d.t; render(); }
+  else if (d.act === 'bitVer') {
+    if (B.tipo === 'rango') { B.desde = $('#bitDesde').value || S.data.hoy; B.hasta = $('#bitHasta').value || B.desde; if (B.desde > B.hasta) { const t = B.desde; B.desde = B.hasta; B.hasta = t; } }
+    else { B.ref = $('#bitRef').value || S.data.hoy; [B.desde, B.hasta] = rangoBit(B.tipo, B.ref); }
+    B.data = null; B.imgs = null; render();
+  }
+  else if (d.act === 'bitImg' && B.canvases) {
+    try { loading(true, 'Preparando imagen…');
+      const files = await Promise.all(B.canvases.map((c, i) => new Promise(ok => c.toBlob(bl => ok(new File([bl], nomBit(B) + (B.canvases.length > 1 ? '-hoja' + (i + 1) : '') + '.png', { type: 'image/png' })), 'image/png'))));
+      await compartirArchivos(files, 'Bitácora de calidad');
+    } finally { loading(false); }
+  }
+  else if (d.act === 'bitPdf' && B.canvases) {
+    try { loading(true, 'Armando el PDF…');
+      const { jsPDF } = await cargarJsPdf();
+      const pdf = new jsPDF({ unit: 'pt', format: 'letter' });
+      B.canvases.forEach((c, i) => { if (i) pdf.addPage(); pdf.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 612, 792); });
+      const blob = pdf.output('blob');
+      await compartirArchivos([new File([blob], nomBit(B) + '.pdf', { type: 'application/pdf' })], 'Bitácora de calidad');
+    } catch (err) { toast(err.message || String(err), true); } finally { loading(false); }
+  }
 });
 
 /* ============ facturas (dueño y contador) ============ */
@@ -3000,7 +3182,7 @@ document.addEventListener('click', async e => {
       S.precorte = null; raiz('inicio');
     }
     else if (a === 'guardarCalidad') {
-      await run('apiCalidad', [S.token, { punto: $('#qPunto').value, cloro: $('#qCloro').value, tds: $('#qTds').value, ph: $('#qPh').value }], 'Guardando…');
+      await run('apiCalidad', [S.token, { punto: $('#qPunto').value, cloro: $('#qCloro').value, tds: $('#qTds').value, ph: $('#qPh').value, obs: $('#qObs').value }], 'Guardando…'); if (S.bit) S.bit.data = null;
       toast('Lectura guardada'); atras();
     }
     else if (a === 'guardarCliente') {
