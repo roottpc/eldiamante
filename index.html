@@ -2500,7 +2500,7 @@ function inicioDueno(d) {
       ${app('elegir', ICON.venta, 'Venta')}${app('venta', ICON.planta, 'Mostrador', '', d.idPlanta)}${app('deudas', ICON_DEUDA, 'Te deben')}${app('gasto', ICON.gasto, 'Gasto')}
       ${app('reporte', ICON.corte, 'Ventas del día')}${app('control', ICON.escudo, 'Cuadre', d.porConfirmar || '')}${app('sobres', ICON.sobres, 'Sobres')}${app('historial', ICON.pedidos, 'Historial')}
       ${app('salida', ICON.salida, 'Salida')}${app('inventario', ICON_INV, 'Inventario', d.inventarioAlerta || '')}${app('facturas', ICON_FACT, 'Facturas')}${app('corte', ICON.corte, 'Corte')}
-      ${app('agenda', ICON.agenda, 'Agenda')}${app('prestamos', ICON.prestamo, 'Préstamos')}${app('calidad', ICON.calidad, 'Calidad')}${app('avisos', ICON_CAMPANA, 'Avisos', AV.noLeidos || '')}
+      ${app('agenda', ICON.agenda, 'Agenda')}${app('prestamos', ICON.prestamo, 'Préstamos')}${app('calidad', ICON.calidad, 'Calidad')}${app('planta3d', ICON.calidad, 'Planta 3D')}${app('avisos', ICON_CAMPANA, 'Avisos', AV.noLeidos || '')}
     </div>
     <div class="btnrow"><button class="btn sec small" style="flex:1" data-act="recargar">Actualizar</button>${PUSH.soporta && PUSH.on ? `<button class="btn sec small" style="flex:1" data-go="notif">Notificaciones</button>` : ''}</div>
     <small class="muted" style="text-align:center;font-size:11px">Servidor: ${esc(d.version || 'versión anterior')} · App: ${VERSION_ESPERADA}</small>`);
@@ -2622,6 +2622,8 @@ function tituloPeriodo(B) {
   if (B.desde === B.hasta) { const f = fechaLarga(B.desde); return f.charAt(0).toUpperCase() + f.slice(1); }
   return 'Del ' + fmtCorto(B.desde) + ' al ' + fmtCorto(B.hasta);
 }
+
+VISTAS.planta3d = () => marco('Planta 3D', 'Hoy y propuesta reacomodada', `<div class="card" style="padding:0;overflow:hidden"><iframe src="https://roottpc.github.io/eldiamante/planta3d.html" title="Planta 3D" style="width:100%;height:78vh;border:0;display:block;background:#07131f"></iframe></div><p class="muted" style="text-align:center;font-size:13px">Gira con el dedo y pellizca para acercar.</p>`, true);
 
 VISTAS.bitacora = () => {
   const B = S.bit || (S.bit = { tipo: 'dia', ref: S.data.hoy, desde: S.data.hoy, hasta: S.data.hoy, data: null, imgs: null });
