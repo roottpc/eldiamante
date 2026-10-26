@@ -2623,7 +2623,8 @@ function tituloPeriodo(B) {
   return 'Del ' + fmtCorto(B.desde) + ' al ' + fmtCorto(B.hasta);
 }
 
-VISTAS.planta3d = () => marco('Planta 3D', 'Hoy y propuesta reacomodada', `<div class="card" style="padding:0;overflow:hidden"><iframe src="https://roottpc.github.io/eldiamante/planta3d.html" title="Planta 3D" style="width:100%;height:78vh;border:0;display:block;background:#07131f"></iframe></div><p class="muted" style="text-align:center;font-size:13px">Gira con el dedo y pellizca para acercar.</p>`, true);
+const URL_PLANTA3D = 'https:' + '/' + '/roottpc.github.io/eldiamante/planta3d.html';
+VISTAS.planta3d = () => marco('Planta 3D', 'Hoy y propuesta reacomodada', `<div class="card" style="padding:0;overflow:hidden"><iframe src="${URL_PLANTA3D}" title="Planta 3D" style="width:100%;height:78vh;border:0;display:block;background:#07131f"></iframe></div><p class="muted" style="text-align:center;font-size:13px">Gira con el dedo y pellizca para acercar.</p>`, true);
 
 VISTAS.bitacora = () => {
   const B = S.bit || (S.bit = { tipo: 'dia', ref: S.data.hoy, desde: S.data.hoy, hasta: S.data.hoy, data: null, imgs: null });
