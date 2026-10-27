@@ -54,6 +54,8 @@ h1{font-family:var(--display);font-size:clamp(28px,5vw,40px);letter-spacing:.02e
         <li>El tinaco de agua producto de 2,500 L (con su cortina) ocupa casi la mitad del área de venta, que es de solo 4 × 2.5 m al frente.</li>
         <li>Llenado en el mostrador frente a Camilo Torres, con la lavadora al lado.</li>
         <li>No hay dónde acomodar llenos y vacíos: se mezclan en el piso.</li>
+        <li>La bodega guarda pacas de galones, rejas y cajas sin orden.</li>
+        <li>Junto a la ósmosis el piso está roto y hay costales y basura.</li>
         <li>La bodega (unos 6.7 × 3.5 m, fachada de cristal a 20 de Febrero) casi no se usa.</li><li>El repartidor entra hasta adentro y ensucia el piso.</li>
       </ul>
     </section>
@@ -136,6 +138,11 @@ box(hoy,1.5,2.7,0.15,0.7,1.0,0x3d8f73);label(hoy,'Llenadora en ventana (3 llaves
 cyl(hoy,3.3,0.5,0.35,0.9,0xd8e2e8);label(hoy,'Lavadora',3.3,0.5,1.25);
 garrafones(hoy,0.4,0.9,2,3,1,0x7f8c99);garrafones(hoy,1.1,1.9,2,2,1,0x5fc8ff);
 garrafones(hoy,-5.3,4.9,2,2,1,0x7f8c99);label(hoy,'Bodega mal usada',-2.6,6.0,0.8,'#d8a35a');
+box(hoy,1.0,2.2,1.95,2.5,0.9,0xc9d3da);label(hoy,'Mesa inox (tapas)',1.6,2.2,1.25);
+garrafones(hoy,0.3,1.0,3,4,2,0x5fc8ff);label(hoy,'Vacíos apilados en el piso',0.6,1.4,1.6,'#ffb547');
+box(hoy,-3.6,-1.4,5.0,6.2,1.3,0xe8f1f7,0,0.85);label(hoy,'Pacas de galones vacíos',-2.5,5.6,1.7,'#d8a35a');
+box(hoy,-5.7,-4.8,5.2,5.8,1.6,0x2a2f36);label(hoy,'Rejas y cajas',-5.25,5.5,1.95,'#d8a35a');
+box(hoy,0.1,0.75,1.0,1.4,0.5,0xb3262f,0,0.0);
 
 // ---------- PROPUESTA ----------
 const prop=new THREE.Group();S.add(prop);
