@@ -540,6 +540,7 @@ i.cq-l{background:var(--ok);opacity:.85;top:3px;bottom:3px}
 .gx-x{width:40px;flex:none;border-radius:12px;border:1px solid var(--line);background:var(--soft);color:var(--muted);font-size:15px}
 .gx-lg{display:grid;grid-template-columns:1fr 1.4fr;gap:8px}
 .gx-lg .inp{font-family:var(--mono)}
+.cli-fila{display:flex;gap:8px;align-items:stretch}.cli-fila .row{flex:1;min-width:0}.cli-precio{color:var(--ink)}.cli-precio .cp{color:#00c8ff;font-weight:800}.cli-mapa{flex:0 0 64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:14px;border:1px solid rgba(0,200,255,.45);background:rgba(0,200,255,.08);text-decoration:none;font-size:22px;color:var(--ink)}.cli-mapa span{font-size:11px;font-weight:700}.cli-mapa.sin{opacity:.45;border-style:dashed}.cli-mapa.sin span{font-size:9px;text-align:center}
 </style>
 </head>
 <body>
@@ -861,7 +862,7 @@ function marco(titulo, sub, cuerpo, conAtras) {
 }
 function renderNav() {
   const rol = S.user && S.user.rol;
-  const items = rol === 'CONTADOR' ? [['facturas', 'Facturas', ICON_FACT]] : rol === 'RUTA' ? [['inicio', 'Inicio', ICON.home], ['ruta', 'Ruta', ICON.ruta]]
+  const items = rol === 'CONTADOR' ? [['facturas', 'Facturas', ICON_FACT]] : rol === 'RUTA' ? [['inicio', 'Inicio', ICON.home], ['ruta', 'Ruta', ICON.ruta], ['clientes', 'Clientes', ICON.clientes]]
     : rol === 'PLANTA' ? [['inicio', 'Inicio', ICON.home], ['pedidos', 'Pedidos', ICON.pedidos]]
     : [['inicio', 'Inicio', ICON.home], ['ruta', 'Ruta', ICON.ruta], ['clientes', 'Clientes', ICON.clientes], ['pedidos', 'Pedidos', ICON.pedidos]];
   if (esDueno()) items.push(['panel', 'Mi panel', ICON.panel]);
@@ -1017,9 +1018,11 @@ VISTAS.clientes.despues = () => {
   b.oninput = () => { S.params.q = b.value; const q = b.value.toLowerCase(); $('#lista').innerHTML = listaClientesHTML(S.data.clientes.filter(c => c.id !== S.data.idPlanta && c.id !== S.data.idPaso && c.nombre.toLowerCase().indexOf(q) >= 0)); };
 };
 function listaClientesHTML(lista) {
-  return lista.map(c => `<button class="row" data-go="cliente" data-id="${c.id}"><div class="who"><b>${esc(nice(c.nombre))}</b>
-    <small>${c.ultima ? 'Última compra hace ' + c.diasDesde + ' días' : 'Sin compras'}${c.frecuencia ? ' · compra cada ' + c.frecuencia + ' días' : ''} · ${money(c.precios.GARRAFON)}</small></div>
-    ${c.estatus === 'INACTIVO' ? '<span class="pill p-bad">Inactivo</span>' : c.saldo > 0.5 ? `<span class="pill p-warn">Debe ${money(c.saldo)}</span>` : ''}</button>`).join('') || '<p class="muted">Sin resultados.</p>';
+  return lista.map(c => `<div class="cli-fila"><button class="row" data-go="cliente" data-id="${c.id}"><div class="who"><b>${esc(nice(c.nombre))}</b>
+    <small class="cli-precio">Garrafón <span class="cp">${money(c.precios.GARRAFON)}</span>${c.precios.GALON ? ' · Galón <span class="cp">' + money(c.precios.GALON) + '</span>' : ''}</small>
+    <small>${c.ultima ? 'Última compra hace ' + c.diasDesde + ' días' : 'Sin compras'}${c.frecuencia ? ' · compra cada ' + c.frecuencia + ' días' : ''}</small></div>
+    ${c.estatus === 'INACTIVO' ? '<span class="pill p-bad">Inactivo</span>' : c.saldo > 0.5 ? `<span class="pill p-warn">Debe ${money(c.saldo)}</span>` : ''}</button>
+    ${c.ubicacion ? `<a class="cli-mapa" target="_blank" aria-label="Ubicación de ${esc(nice(c.nombre))}" href="https:\/\/www.google.com/maps/dir/?api=1&destination=${c.ubicacion.lat},${c.ubicacion.lon}">📍<span>Ir</span></a>` : '<span class="cli-mapa sin">📍<span>Sin ubicación</span></span>'}</div>`).join('') || '<p class="muted">Sin resultados.</p>';
 }
 
 VISTAS.cliente = (p) => {
