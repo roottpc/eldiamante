@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<base target="_top">
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<base target="_top">
+<meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
 /* Tablero oscuro: negro profundo, líneas finas azul neón, brillo solo en lo principal y lo seleccionado */
 :root{
@@ -531,6 +530,7 @@ i.cq-l{background:var(--ok);opacity:.85;top:3px;bottom:3px}
 .gx-x{width:40px;flex:none;border-radius:12px;border:1px solid var(--line);background:var(--soft);color:var(--muted);font-size:15px}
 .gx-lg{display:grid;grid-template-columns:1fr 1.4fr;gap:8px}
 .gx-lg .inp{font-family:var(--mono)}
+.cli-fila{display:flex;gap:8px;align-items:stretch}.cli-fila .row{flex:1;min-width:0}.cli-precio{color:var(--ink)}.cli-precio .cp{color:#00c8ff;font-weight:800}.rm-fila{display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px solid rgba(0,200,255,.12)}.rm-fila .who{flex:1;min-width:0}.rm-fila .who small{display:block}.rm-fila .btn{width:auto;padding:6px 10px}.cli-mapa{flex:0 0 64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:14px;border:1px solid rgba(0,200,255,.45);background:rgba(0,200,255,.08);text-decoration:none;font-size:22px;color:var(--ink)}.cli-mapa span{font-size:11px;font-weight:700}.cli-mapa.sin{opacity:.45;border-style:dashed}.cli-mapa.sin span{font-size:9px;text-align:center}
 </style>
 </head>
 <body>
@@ -651,14 +651,14 @@ function loading(on, msg) { $('#loading').hidden = !on; $('#loadingMsg').textCon
 /* En Apps Script se usa google.script.run; en la app instalable se habla con el servidor por internet (API_URL). */
 const EN_GAS = typeof google !== 'undefined' && google.script && google.script.run;
 /* Después de guardar algo, todas las pestañas se vuelven a calcular con los datos nuevos (nada se queda viejo). */
-const SOLO_LECTURA = /^(apiInicio|apiAvisos|apiRuta|apiCarga|apiPanel|apiReporteDia|apiSobres|apiDeudas|apiInventario|apiFacturas|apiFacturaArchivo|apiFacturasZip|apiControl|apiVentasHistorial|apiEnvases|apiZonas|apiPreCorte|apiPushClave|apiComprobanteVer|apiVerificaciones|apiTicketLeer|apiPrestamos|apiAgenda|apiSeparador|apiLogin|apiLogout|apiTicket|apiAvisoLeido|apiPush[A-Za-z]*|pub)/;
+const SOLO_LECTURA = /^(apiInicio|apiCalidadBitacora|apiAvisos|apiRuta|apiCarga|apiPanel|apiReporteDia|apiSobres|apiDeudas|apiInventario|apiFacturas|apiFacturaArchivo|apiFacturasZip|apiControl|apiVentasHistorial|apiEnvases|apiZonas|apiPreCorte|apiPushClave|apiComprobanteVer|apiVerificaciones|apiTicketLeer|apiPrestamos|apiAgenda|apiSeparador|apiLogin|apiLogout|apiTicket|apiAvisoLeido|apiPush[A-Za-z]*|pub)/;
 let REFRESCO = null;
 function invalidar() {
   if (S.panel) S.panel.data = null;
   ['rep', 'sob', 'deu', 'inv', 'control', 'hist', 'sep', 'prestamos', 'agenda'].forEach(k => { if (S[k] && typeof S[k] === 'object' && 'data' in S[k]) S[k].data = null; });
   if (S.fac && S.vista !== 'facturaNueva' && S.vista !== 'fiscal') S.fac.data = null;
   if (S.mapa) { S.mapa.vendido = null; S.mapa.zonas = null; S.mapa.manana = null; }
-  S.precorte = null; S.ruta = null; S.agenda = S.agenda && S.agenda.data !== undefined ? S.agenda : null; S.prestamos = S.prestamos && S.prestamos.data !== undefined ? S.prestamos : null;
+  if (S.vista !== 'corte') S.precorte = null; S.ruta = null; S.agenda = S.agenda && S.agenda.data !== undefined ? S.agenda : null; S.prestamos = S.prestamos && S.prestamos.data !== undefined ? S.prestamos : null;
   clearTimeout(REFRESCO); REFRESCO = setTimeout(() => { if (S.token) cargar(true).then(() => { if (S.vista === 'inicio') render(); }); }, 400);
 }
 function call(fn, ...args) {
@@ -852,7 +852,7 @@ function marco(titulo, sub, cuerpo, conAtras) {
 }
 function renderNav() {
   const rol = S.user && S.user.rol;
-  const items = rol === 'CONTADOR' ? [['facturas', 'Facturas', ICON_FACT]] : rol === 'RUTA' ? [['inicio', 'Inicio', ICON.home], ['ruta', 'Ruta', ICON.ruta]]
+  const items = rol === 'CONTADOR' ? [['facturas', 'Facturas', ICON_FACT]] : rol === 'RUTA' ? [['inicio', 'Inicio', ICON.home], ['ruta', 'Ruta', ICON.ruta], ['clientes', 'Clientes', ICON.clientes]]
     : rol === 'PLANTA' ? [['inicio', 'Inicio', ICON.home], ['pedidos', 'Pedidos', ICON.pedidos]]
     : [['inicio', 'Inicio', ICON.home], ['ruta', 'Ruta', ICON.ruta], ['clientes', 'Clientes', ICON.clientes], ['pedidos', 'Pedidos', ICON.pedidos]];
   if (esDueno()) items.push(['panel', 'Mi panel', ICON.panel]);
@@ -924,14 +924,19 @@ VISTAS.ruta = () => {
     if (p.temprano) tags.push('<span class="pill p-bad">Temprano</span>');
     if (p.aprox) tags.push('<span class="pill p-warn" title="Ubicación sacada de la dirección; se corrige sola con la primera venta">Ubicación aprox.</span>');
     if (p.saldo > 0.5) tags.push(`<span class="pill p-warn">Debe ${money(p.saldo)}</span>`);
-    return `<button class="row" data-go="venta" data-id="${p.id}" ${p.pedido ? `data-pedido="${p.pedido.id}"` : ''} style="${p.visitado ? 'opacity:.6' : ''}">
+    return `<div class="cli-fila"><button class="row" data-go="venta" data-id="${p.id}" ${p.pedido ? `data-pedido="${p.pedido.id}"` : ''} style="${p.visitado ? 'opacity:.6' : ''}">
       ${c ? `<span class="num" style="--c:${c}">${i + 1}</span>` : ''}
       <div class="who"><b>${esc(nice(p.nombre))}</b><small>${p.garrafones ? p.garrafones + ' garrafones' : ''}${p.garrafones && p.galones ? ' · ' : ''}${p.galones ? p.galones + ' galones' : ''}${p.pedido && p.pedido.notas ? ' · ' + esc(p.pedido.notas) : ''}</small>
-      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">${tags.join('')}</div></div></button>`;
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">${tags.join('')}</div></div></button>${botonIr(p.id, p)}</div>`;
   };
   const pend = R.viajes.concat([{ paradas: R.sinUbicacion }]).reduce((s, t) => s + t.paradas.filter(p => !p.visitado).reduce((a, p) => a + p.garrafones, 0), 0);
   const cg = S.data.carga;
+  if (S.rutaManual === undefined) { S.rutaManual = null; call('apiRutaManual', S.token).then(m => { S.rutaManual = m; if (S.vista === 'ruta') render(); }).catch(() => { S.rutaManual = { orden: [], error: true }; }); }
+  const M = S.rutaManual && S.rutaManual.orden && S.rutaManual.orden.length ? S.rutaManual : null;
   return marco('Ruta de hoy', `${R.viajes.length} viajes · ${R.totalGarrafones} garrafones · ${R.totalGalones} galones`, `
+    ${M ? rutaManualHTML(M) : ''}
+    <button class="btn ${M ? 'sec' : ''}" data-go="rutaManual">${M ? 'Cambiar el orden de la ruta' : 'Armar la ruta a mano (yo escojo el orden)'}</button>
+    ${M ? '<div class="lbl">Ruta sugerida por la app</div>' : ''}
     ${mapaRutaHTML(R)}
     ${cargaHTML(pend)}
     <button class="btn sec" data-go="elegir">Venta rápida: otro cliente o cliente de paso</button>
@@ -1008,9 +1013,11 @@ VISTAS.clientes.despues = () => {
   b.oninput = () => { S.params.q = b.value; const q = b.value.toLowerCase(); $('#lista').innerHTML = listaClientesHTML(S.data.clientes.filter(c => c.id !== S.data.idPlanta && c.id !== S.data.idPaso && c.nombre.toLowerCase().indexOf(q) >= 0)); };
 };
 function listaClientesHTML(lista) {
-  return lista.map(c => `<button class="row" data-go="cliente" data-id="${c.id}"><div class="who"><b>${esc(nice(c.nombre))}</b>
-    <small>${c.ultima ? 'Última compra hace ' + c.diasDesde + ' días' : 'Sin compras'}${c.frecuencia ? ' · compra cada ' + c.frecuencia + ' días' : ''} · ${money(c.precios.GARRAFON)}</small></div>
-    ${c.estatus === 'INACTIVO' ? '<span class="pill p-bad">Inactivo</span>' : c.saldo > 0.5 ? `<span class="pill p-warn">Debe ${money(c.saldo)}</span>` : ''}</button>`).join('') || '<p class="muted">Sin resultados.</p>';
+  return lista.map(c => `<div class="cli-fila"><button class="row" data-go="cliente" data-id="${c.id}"><div class="who"><b>${esc(nice(c.nombre))}</b>
+    <small class="cli-precio">Garrafón <span class="cp">${money(c.precios.GARRAFON)}</span>${c.precios.GALON ? ' · Galón <span class="cp">' + money(c.precios.GALON) + '</span>' : ''}</small>
+    <small>${c.ultima ? 'Última compra hace ' + c.diasDesde + ' días' : 'Sin compras'}${c.frecuencia ? ' · compra cada ' + c.frecuencia + ' días' : ''}</small></div>
+    ${c.estatus === 'INACTIVO' ? '<span class="pill p-bad">Inactivo</span>' : c.saldo > 0.5 ? `<span class="pill p-warn">Debe ${money(c.saldo)}</span>` : ''}</button>
+    ${c.ubicacion ? `<a class="cli-mapa" target="_blank" aria-label="Ubicación de ${esc(nice(c.nombre))}" href="https:\/\/www.google.com/maps/dir/?api=1&destination=${c.ubicacion.lat},${c.ubicacion.lon}">📍<span>Ir</span></a>` : '<span class="cli-mapa sin">📍<span>Sin ubicación</span></span>'}</div>`).join('') || '<p class="muted">Sin resultados.</p>';
 }
 
 VISTAS.cliente = (p) => {
@@ -1385,6 +1392,7 @@ VISTAS.corte = (p) => {
     <div class="card"><div class="lbl">Efectivo</div>
       ${linea('Ventas en ruta (efectivo)', c.efectivoRuta)}${linea('Ventas en planta (efectivo)', c.efectivoPlanta)}${linea('Cobros de fiado en efectivo', c.abonosEfectivo)}
       ${linea('Comisión de ruta' + (c.prestamo ? ' (' + money(c.comision) + ' − préstamo ' + money(c.prestamo) + ')' : ''), c.pagoRuta != null ? c.pagoRuta : c.comision, true)}${linea('Gastos pagados en efectivo', c.gastosEfectivo, true)}
+      ${(c.repartidores || []).map(g => `<div class="tot" style="font-size:14px"><span>Entrega ${esc(nice(g.nombre))}</span><b>${money(g.entrega)}</b></div>`).join('')}${c.repartidores ? `<div class="tot" style="font-size:14px"><span>Entrega planta</span><b>${money(c.plantaEntrega || 0)}</b></div>` : ''}
       <div class="tot" style="border-top:2px solid var(--line);padding-top:8px"><span>Debe entregarse</span><strong>${money(c.esperado)}</strong></div>
       <p class="muted" style="margin:0;font-size:13px">Aparte: transferencias ${money(c.transferencias + c.abonosTransferencia)} · fiado ${money(c.credito)}${c.abonosDueno ? ' · abonos que cobró Oscar ' + money(c.abonosDueno) : ''}${c.efectivoDueno ? ' · ventas de Oscar ' + money(c.efectivoDueno) : ''}</p>
       <label class="f">Efectivo que se entrega<input class="inp" id="entregado" inputmode="decimal" value="${esc(p.entregado || '')}" placeholder="$0"></label>
@@ -1394,7 +1402,7 @@ VISTAS.corte = (p) => {
 };
 VISTAS.corte.despues = () => {
   const i = $('#entregado'); if (!i) return;
-  const f = () => { const c = S.precorte; if (i.value === '') { $('#dif').innerHTML = ''; return; } const d = Number(i.value) - c.esperado; $('#dif').innerHTML = Math.abs(d) < 1 ? '<div class="okbox">Cuadra.</div>' : `<div class="badbox">${d < 0 ? 'Faltan' : 'Sobran'} ${money(Math.abs(d))}</div>`; };
+  const c0 = S.precorte; const f = () => { const c = S.precorte || c0; if (!c || !$('#dif')) return; if (i.value === '') { $('#dif').innerHTML = ''; return; } const d = Number(i.value) - c.esperado; $('#dif').innerHTML = Math.abs(d) < 1 ? '<div class="okbox">Cuadra.</div>' : `<div class="badbox">${d < 0 ? 'Faltan' : 'Sobran'} ${money(Math.abs(d))}</div>`; };
   i.oninput = f; f();
 };
 
@@ -1403,8 +1411,10 @@ VISTAS.calidad = () => marco('Calidad del agua', 'Bitácora de planta', `
     <label class="f">Punto de muestreo<select class="inp" id="qPunto">${S.data.puntosCalidad.map(p => `<option>${esc(p)}</option>`).join('')}</select></label>
     <div class="grid2"><label class="f">Cloro residual (mg/L)<input class="inp" id="qCloro" inputmode="decimal"></label><label class="f">TDS (ppm)<input class="inp" id="qTds" inputmode="decimal"></label>
     <label class="f">pH<input class="inp" id="qPh" inputmode="decimal"></label></div>
+    <label class="f">Observaciones (opcional)<input class="inp" id="qObs" maxlength="200" placeholder="Ej. se cambió cartucho de 5 micras"></label>
   </div>
-  <button class="btn" data-act="guardarCalidad">Guardar lectura</button>`, true);
+  <button class="btn" data-act="guardarCalidad">Guardar lectura</button>
+  <button class="btn sec" data-go="bitacora">📋 Ver y mandar bitácoras</button>`, true);
 
 VISTAS.nuevoCliente = (p) => {
   const ped = p.pedido ? S.data.pedidos.find(x => x.id === p.pedido) : null;
@@ -2147,6 +2157,8 @@ VISTAS.reporte = () => {
     <div class="hv-ley">${['GAEL', 'JESSICA', 'BLANCA', 'OSCAR'].map(n => `<span><i style="background:${COLOR_QUIEN(n)}"></i>${nice(n)}</span>`).join('')}</div>
     <section class="card" style="gap:0;padding:6px 14px">${filas || '<p class="muted">No hubo ventas este día.</p>'}</section>
     ${rep}
+    ${r.planta ? `<section class="card"><h3>Lo de planta</h3><div class="tot"><span>Efectivo${r.planta.abonos ? ' + abonos' : ''}</span><b>${money(r.planta.efectivo + r.planta.abonos)}</b></div>${r.planta.gastos ? `<div class="tot"><span>Gastos pagados en planta</span><b class="neg">−${money(r.planta.gastos)}</b></div>` : ''}<div class="tot total"><span>Entrega planta</span><b>${money(r.planta.entrega)}</b></div></section>
+    <section class="card"><div class="tot total"><span>Total que te entregan hoy (va en el corte)</span><b>${money(r.totalEntrega)}</b></div></section>` : ''}
     <button class="btn wa" data-act="repFoto">${ICON_WA}Mandar foto por WhatsApp</button>
     <small class="muted" style="text-align:center">Se arma una imagen como esta pantalla y eliges a quién mandarla.</small>`, true);
 };
@@ -2437,7 +2449,7 @@ document.addEventListener('click', async e => {
 });
 
 /* ============ inicio del dueño: resumido y gráfico ============ */
-const VERSION_ESPERADA = '2026-10-24.3';
+const VERSION_ESPERADA = '2026-10-26.1';
 function avisoVersion(d) { return d.version === VERSION_ESPERADA ? '' : `<div class="badbox" style="font-size:14px"><b>Apps Script tiene una versión anterior${d.version ? ' (' + esc(d.version) + ')' : ''}.</b> Falta pegar el Code.gs nuevo y crear la Nueva versión en la implementación AKfycbx_myB0. Hasta entonces algunas funciones no jalan.</div>`; }
 const ICON_DEUDA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5"/><circle cx="17" cy="16" r="3"/></svg>';
 function inicioDueno(d) {
@@ -2489,7 +2501,7 @@ function inicioDueno(d) {
       ${app('elegir', ICON.venta, 'Venta')}${app('venta', ICON.planta, 'Mostrador', '', d.idPlanta)}${app('deudas', ICON_DEUDA, 'Te deben')}${app('gasto', ICON.gasto, 'Gasto')}
       ${app('reporte', ICON.corte, 'Ventas del día')}${app('control', ICON.escudo, 'Cuadre', d.porConfirmar || '')}${app('sobres', ICON.sobres, 'Sobres')}${app('historial', ICON.pedidos, 'Historial')}
       ${app('salida', ICON.salida, 'Salida')}${app('inventario', ICON_INV, 'Inventario', d.inventarioAlerta || '')}${app('facturas', ICON_FACT, 'Facturas')}${app('corte', ICON.corte, 'Corte')}
-      ${app('agenda', ICON.agenda, 'Agenda')}${app('prestamos', ICON.prestamo, 'Préstamos')}${app('calidad', ICON.calidad, 'Calidad')}${app('avisos', ICON_CAMPANA, 'Avisos', AV.noLeidos || '')}
+      ${app('agenda', ICON.agenda, 'Agenda')}${app('prestamos', ICON.prestamo, 'Préstamos')}${app('calidad', ICON.calidad, 'Calidad')}${app('planta3d', ICON.calidad, 'Planta 3D')}${app('avisos', ICON_CAMPANA, 'Avisos', AV.noLeidos || '')}
     </div>
     <div class="btnrow"><button class="btn sec small" style="flex:1" data-act="recargar">Actualizar</button>${PUSH.soporta && PUSH.on ? `<button class="btn sec small" style="flex:1" data-go="notif">Notificaciones</button>` : ''}</div>
     <small class="muted" style="text-align:center;font-size:11px">Servidor: ${esc(d.version || 'versión anterior')} · App: ${VERSION_ESPERADA}</small>`);
@@ -2588,6 +2600,242 @@ document.addEventListener('click', async e => {
   const d = b.dataset;
   if (d.deu) { S.deu.abierto = S.deu.abierto === d.deu ? null : d.deu; render(); }
   else if (d.act === 'deuImg') { const c = S.deu.data.clientes.find(x => x.id === d.id); if (c) { try { loading(true, 'Armando la imagen…'); await compartirDeuda(c, S.deu.data); } finally { loading(false); } } }
+});
+
+/* ============ bitácora de calidad del agua ============ */
+const LIM_CAL = { ph: [6.5, 8.5], tds: 500 };
+const PUNTOS_EVAL = /LLENADORA|PRODUCTO/;
+function evalCal(r) {
+  if (!PUNTOS_EVAL.test(r.punto)) return '';
+  const malo = (r.ph != null && (r.ph < LIM_CAL.ph[0] || r.ph > LIM_CAL.ph[1])) || (r.tds != null && r.tds > LIM_CAL.tds);
+  return malo ? 'NO CUMPLE' : 'CUMPLE';
+}
+const keyDia = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+function rangoBit(tipo, ref) {
+  const d = new Date(ref + 'T12:00:00');
+  if (tipo === 'dia') return [ref, ref];
+  if (tipo === 'semana') { const w = (d.getDay() + 6) % 7; const a = new Date(d); a.setDate(d.getDate() - w); const b = new Date(a); b.setDate(a.getDate() + 6); return [keyDia(a), keyDia(b)]; }
+  if (tipo === 'mes') return [keyDia(new Date(d.getFullYear(), d.getMonth(), 1)), keyDia(new Date(d.getFullYear(), d.getMonth() + 1, 0))];
+  return [ref, ref];
+}
+const fmtCorto = k => { const [y, m, d] = k.split('-').map(Number); return String(d).padStart(2, '0') + '/' + String(m).padStart(2, '0') + '/' + y; };
+function tituloPeriodo(B) {
+  if (B.desde === B.hasta) { const f = fechaLarga(B.desde); return f.charAt(0).toUpperCase() + f.slice(1); }
+  return 'Del ' + fmtCorto(B.desde) + ' al ' + fmtCorto(B.hasta);
+}
+
+const URL_PLANTA3D = 'https:' + '/' + '/roottpc.github.io/eldiamante/planta3d.html';
+VISTAS.planta3d = () => marco('Planta 3D', 'Hoy y propuesta reacomodada', `<div class="card" style="padding:0;overflow:hidden"><iframe src="${URL_PLANTA3D}" title="Planta 3D" style="width:100%;height:78vh;border:0;display:block;background:#07131f"></iframe></div><p class="muted" style="text-align:center;font-size:13px">Gira con el dedo y pellizca para acercar.</p>`, true);
+
+VISTAS.bitacora = () => {
+  const B = S.bit || (S.bit = { tipo: 'dia', ref: S.data.hoy, desde: S.data.hoy, hasta: S.data.hoy, data: null, imgs: null });
+  const chip = (t, l) => `<button class="btn ${B.tipo === t ? '' : 'sec'} small" style="width:auto" data-act="bitTipo" data-t="${t}">${l}</button>`;
+  const ctrl = B.tipo === 'rango'
+    ? `<div class="grid2"><label class="f">Desde<input class="inp" type="date" id="bitDesde" value="${B.desde}"></label><label class="f">Hasta<input class="inp" type="date" id="bitHasta" value="${B.hasta}"></label></div>`
+    : `<label class="f">${B.tipo === 'dia' ? 'Día' : B.tipo === 'semana' ? 'Cualquier día de la semana' : 'Cualquier día del mes'}<input class="inp" type="date" id="bitRef" value="${B.ref}"></label>`;
+  let cuerpo = '';
+  if (!B.data) {
+    setTimeout(() => cargarBit(), 0);
+    cuerpo = '<p class="muted">Cargando bitácora…</p>';
+  } else {
+    const n = B.data.registros.length;
+    const malos = B.data.registros.filter(r => evalCal(r) === 'NO CUMPLE').length;
+    cuerpo = `<div class="card"><div class="tot"><span>${esc(tituloPeriodo(B.data))}</span><b>${n} muestra${n === 1 ? '' : 's'}</b></div>
+      ${malos ? `<div class="badbox">${malos} muestra${malos === 1 ? '' : 's'} fuera de rango</div>` : (n ? '<div class="okbox">Todas las muestras de producto dentro de rango.</div>' : '<div class="warnbox">No hay muestras registradas en este periodo.</div>')}</div>
+      <div class="grid2"><button class="btn" data-act="bitImg">🖼️ Imagen por WhatsApp</button><button class="btn" data-act="bitPdf">📄 PDF por WhatsApp</button></div>
+      <div class="lbl" style="margin-top:6px">Vista previa</div>
+      <div id="bitPrev">${(B.imgs || []).map(u => `<img src="${u}" alt="Bitácora" style="width:100%;border-radius:8px;margin-bottom:10px;box-shadow:0 2px 12px rgba(0,0,0,.4);background:#fff">`).join('') || '<p class="muted">Armando la vista previa…</p>'}</div>`;
+  }
+  return marco('Bitácoras de calidad', 'Por día, semana, mes o rango', `
+    <div class="card"><div style="display:flex;gap:8px;flex-wrap:wrap">${chip('dia', 'Día')}${chip('semana', 'Semana')}${chip('mes', 'Mes')}${chip('rango', 'Rango')}</div>
+    ${ctrl}<button class="btn sec" data-act="bitVer">Ver bitácora</button></div>${cuerpo}`, true);
+};
+async function cargarBit() {
+  const B = S.bit;
+  try {
+    const r = await run('apiCalidadBitacora', [S.token, B.desde, B.hasta], 'Buscando muestras…');
+    B.data = r; B.imgs = null; render();
+    const pags = await paginasBit(r);
+    B.canvases = pags; B.imgs = pags.map(c => c.toDataURL('image/png'));
+    if (S.vista === 'bitacora') render();
+  } catch (e) { B.data = { desde: B.desde, hasta: B.hasta, registros: [], generado: '' }; render(); }
+}
+
+async function paginasBit(D) {
+  const W = 1275, H = 1650, M = 70, logo = await cargarImg(LOGO_FULL);
+  const AZ = '#0b2a4a', AZ2 = '#1565a8', GR = '#5b6773', LN = '#c9d3dc';
+  const cols = [['Fecha', 120], ['Hora', 70], ['Punto de muestreo', 205], ['Cloro\nmg/L', 82], ['pH', 70], ['SDT\nppm', 82], ['Resultado', 120], ['Responsable', 140], ['Observaciones', 246]];
+  const filas = D.registros;
+  const porPag1 = 26, porPag = 34;
+  const grupos = [];
+  if (!filas.length) grupos.push([]);
+  else { grupos.push(filas.slice(0, porPag1)); for (let i = porPag1; i < filas.length; i += porPag) grupos.push(filas.slice(i, i + porPag)); }
+  const total = grupos.length;
+  const prod = filas.filter(r => PUNTOS_EVAL.test(r.punto));
+  const prom = k => { const v = prod.map(r => r[k]).filter(x => x != null); return v.length ? (v.reduce((a, b) => a + b, 0) / v.length) : null; };
+  const malos = filas.filter(r => evalCal(r) === 'NO CUMPLE').length;
+  const dias = new Set(filas.map(r => r.fecha)).size;
+  const folio = 'BC-' + D.desde.replace(/-/g, '') + (D.hasta !== D.desde ? '-' + D.hasta.replace(/-/g, '').slice(4) : '');
+  return grupos.map((g, p) => {
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const x = cv.getContext('2d');
+    const F = (s, w) => (w || 400) + ' ' + s + 'px Georgia,"Times New Roman",serif';
+    const FS = (s, w) => (w || 400) + ' ' + s + 'px "Helvetica Neue",Arial,sans-serif';
+    const t = (s, X, Y, f, c, al) => { x.font = f; x.fillStyle = c; x.textAlign = al || 'left'; x.fillText(s, X, Y); };
+    x.fillStyle = '#fff'; x.fillRect(0, 0, W, H);
+    x.fillStyle = AZ; x.fillRect(0, 0, W, 150);
+    x.fillStyle = AZ2; x.fillRect(0, 150, W, 6);
+    if (logo) { const lh = 104, lw = logo.width / logo.height * lh; x.drawImage(logo, M - 10, 23, lw, lh); }
+    t('PURIFICADORA EL DIAMANTE', W - M, 62, FS(30, 700), '#fff', 'right');
+    t('Agua purificada · Tepic, Nayarit', W - M, 96, FS(20), '#cfe2f3', 'right');
+    t('Folio ' + folio + '   ·   Hoja ' + (p + 1) + ' de ' + total, W - M, 128, FS(17), '#9fc3e2', 'right');
+    let y = 214;
+    t('BITÁCORA DE CONTROL DE CALIDAD DEL AGUA', W / 2, y, F(32, 700), AZ, 'center');
+    y += 38; t('Periodo: ' + tituloPeriodo(D), W / 2, y, FS(20), GR, 'center');
+    y += 28;
+    if (p === 0) {
+      const res = [['Muestras', String(filas.length)], ['Días con registro', String(dias)], ['pH promedio (producto)', prom('ph') == null ? '—' : prom('ph').toFixed(2)], ['SDT promedio (producto)', prom('tds') == null ? '—' : Math.round(prom('tds')) + ' ppm'], ['Fuera de rango', String(malos)]];
+      const bw = (W - 2 * M) / res.length;
+      res.forEach(([a, b], i) => {
+        const X = M + i * bw;
+        x.strokeStyle = LN; x.lineWidth = 1.5; x.strokeRect(X + 4, y, bw - 8, 86);
+        t(b, X + bw / 2, y + 46, FS(30, 700), a === 'Fuera de rango' && malos ? '#b3261e' : AZ, 'center');
+        t(a, X + bw / 2, y + 74, FS(15), GR, 'center');
+      });
+      y += 118;
+    } else y += 20;
+    const tw = cols.reduce((a, c) => a + c[1], 0), sx = (W - 2 * M) / tw;
+    const hh = 52; x.fillStyle = AZ; x.fillRect(M, y, W - 2 * M, hh);
+    let cx = M;
+    cols.forEach(([n, w]) => { const ls = n.split('\n'); ls.forEach((l, i) => t(l, cx + w * sx / 2, y + (ls.length === 1 ? 32 : 22 + i * 20), FS(16, 700), '#fff', 'center')); cx += w * sx; });
+    y += hh;
+    const rh = 34;
+    if (!g.length) { t('Sin muestras registradas en este periodo.', W / 2, y + 50, FS(19, 400), GR, 'center'); y += 80; }
+    let prevF = null;
+    g.forEach((r, i) => {
+      if (i % 2) { x.fillStyle = '#f2f6fa'; x.fillRect(M, y, W - 2 * M, rh); }
+      if (prevF && prevF !== r.fecha) { x.strokeStyle = AZ2; x.lineWidth = 2; x.beginPath(); x.moveTo(M, y); x.lineTo(W - M, y); x.stroke(); }
+      const ev = evalCal(r);
+      const val = [prevF === r.fecha ? '' : fmtCorto(r.fecha), r.hora, nice(r.punto), r.cloro == null ? '—' : r.cloro.toFixed(2), r.ph == null ? '—' : r.ph.toFixed(1), r.tds == null ? '—' : String(Math.round(r.tds)), ev || 'N/A', nice(r.resp), r.obs || ''];
+      cx = M;
+      val.forEach((v, j) => {
+        const w = cols[j][1] * sx; let s = String(v); x.font = FS(16, j === 6 ? 700 : 400);
+        while (s.length > 1 && x.measureText(s).width > w - 14) s = s.slice(0, -2) + '…';
+        const col = j === 6 ? (ev === 'NO CUMPLE' ? '#b3261e' : ev === 'CUMPLE' ? '#1b7a3d' : GR) : '#1d2630';
+        t(s, j >= 7 || j === 2 ? cx + 8 : cx + w / 2, y + 23, FS(16, j === 6 ? 700 : 400), col, j >= 7 || j === 2 ? 'left' : 'center');
+        cx += w;
+      });
+      x.strokeStyle = LN; x.lineWidth = 1; x.beginPath(); x.moveTo(M, y + rh); x.lineTo(W - M, y + rh); x.stroke();
+      prevF = r.fecha; y += rh;
+    });
+    x.strokeStyle = AZ; x.lineWidth = 1.5; x.strokeRect(M, y - (g.length ? g.length * rh : 80) - hh, W - 2 * M, (g.length ? g.length * rh : 80) + hh);
+    if (p === total - 1) {
+      y = Math.max(y + 40, H - 330);
+      t('Criterios de aceptación (producto terminado / llenadora): pH ' + LIM_CAL.ph[0] + ' a ' + LIM_CAL.ph[1] + ' · Sólidos disueltos totales ≤ ' + LIM_CAL.tds + ' ppm.', M, y, FS(15), GR);
+      t('Cloro residual: registro informativo. Referencia: NOM-201-SSA1-2015 y NOM-127-SSA1. N/A = punto de control intermedio.', M, y + 24, FS(15), GR);
+      y += 120;
+      [['Elaboró', 'Responsable de planta'], ['Revisó', 'Oscar · Propietario']].forEach(([a, b], i) => {
+        const X = M + 60 + i * ((W - 2 * M) / 2);
+        const w = (W - 2 * M) / 2 - 120;
+        x.strokeStyle = '#1d2630'; x.lineWidth = 1.2; x.beginPath(); x.moveTo(X, y); x.lineTo(X + w, y); x.stroke();
+        t(a, X + w / 2, y + 26, FS(17, 700), '#1d2630', 'center'); t(b, X + w / 2, y + 50, FS(15), GR, 'center');
+      });
+    }
+    x.fillStyle = AZ; x.fillRect(0, H - 46, W, 46);
+    t('Documento generado por el sistema de control El Diamante · ' + (D.generado || ''), M, H - 17, FS(14), '#cfe2f3');
+    t('Hoja ' + (p + 1) + ' / ' + total, W - M, H - 17, FS(14), '#cfe2f3', 'right');
+    return cv;
+  });
+}
+
+function cargarJsPdf() {
+  if (window.jspdf) return Promise.resolve(window.jspdf);
+  return new Promise((ok, fail) => { const s = document.createElement('script'); s.src = 'https:' + '/' + '/cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'; s.onload = () => ok(window.jspdf); s.onerror = () => fail(new Error('No se pudo cargar el generador de PDF. Revisa tu internet.')); document.head.appendChild(s); });
+}
+async function compartirArchivos(files, titulo) {
+  if (navigator.canShare && navigator.canShare({ files: files })) {
+    try { await navigator.share({ files: files, title: titulo }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  files.forEach(f => { const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); });
+  toast('Se descargó el archivo. Ábrelo en WhatsApp para mandarlo.');
+}
+const nomBit = B => 'bitacora-calidad-' + B.data.desde + (B.data.hasta !== B.data.desde ? '_' + B.data.hasta : '');
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b || S.vista !== 'bitacora' || !S.bit) return;
+  const d = b.dataset, B = S.bit;
+  if (d.act === 'bitTipo') { B.tipo = d.t; render(); }
+  else if (d.act === 'bitVer') {
+    if (B.tipo === 'rango') { B.desde = $('#bitDesde').value || S.data.hoy; B.hasta = $('#bitHasta').value || B.desde; if (B.desde > B.hasta) { const t = B.desde; B.desde = B.hasta; B.hasta = t; } }
+    else { B.ref = $('#bitRef').value || S.data.hoy; [B.desde, B.hasta] = rangoBit(B.tipo, B.ref); }
+    B.data = null; B.imgs = null; render();
+  }
+  else if (d.act === 'bitImg' && B.canvases) {
+    try { loading(true, 'Preparando imagen…');
+      const files = await Promise.all(B.canvases.map((c, i) => new Promise(ok => c.toBlob(bl => ok(new File([bl], nomBit(B) + (B.canvases.length > 1 ? '-hoja' + (i + 1) : '') + '.png', { type: 'image/png' })), 'image/png'))));
+      await compartirArchivos(files, 'Bitácora de calidad');
+    } finally { loading(false); }
+  }
+  else if (d.act === 'bitPdf' && B.canvases) {
+    try { loading(true, 'Armando el PDF…');
+      const { jsPDF } = await cargarJsPdf();
+      const pdf = new jsPDF({ unit: 'pt', format: 'letter' });
+      B.canvases.forEach((c, i) => { if (i) pdf.addPage(); pdf.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 612, 792); });
+      const blob = pdf.output('blob');
+      await compartirArchivos([new File([blob], nomBit(B) + '.pdf', { type: 'application/pdf' })], 'Bitácora de calidad');
+    } catch (err) { toast(err.message || String(err), true); } finally { loading(false); }
+  }
+});
+
+/* ============ ruta manual: el dueño escoge el orden ============ */
+function botonIr(id, p) {
+  const c = cliente(id) || {};
+  const u = c.ubicacion || (p && p.lat != null ? { lat: p.lat, lon: p.lon } : null);
+  return u ? `<a class="cli-mapa" target="_blank" aria-label="Cómo llegar" href="https:\/\/www.google.com/maps/dir/?api=1&destination=${u.lat},${u.lon}">📍<span>Ir</span></a>` : '<span class="cli-mapa sin">📍<span>Sin ubicación</span></span>';
+}
+const comproHoy = c => c && c.ultima === S.data.hoy;
+function rutaManualHTML(M) {
+  const filas = M.orden.map((id, i) => {
+    const c = cliente(id); if (!c) return '';
+    const hecho = comproHoy(c);
+    return `<div class="cli-fila"><button class="row" data-go="venta" data-id="${c.id}" style="${hecho ? 'opacity:.55' : ''}"><span class="num" style="--c:var(--agua)">${i + 1}</span>
+      <div class="who"><b>${esc(nice(c.nombre))}</b><small class="cli-precio">Garrafón <span class="cp">${money(c.precios.GARRAFON)}</span>${c.promGarrafon ? ' · suele pedir ' + c.promGarrafon : ''}</small>
+      ${hecho ? '<span class="pill p-ok">Ya compró hoy</span>' : c.saldo > 0.5 ? `<span class="pill p-warn">Debe ${money(c.saldo)}</span>` : ''}</div></button>${botonIr(c.id)}</div>`;
+  }).join('');
+  const pts = M.orden.map(cliente).filter(c => c && c.ubicacion && !comproHoy(c)).slice(0, 9).map(c => c.ubicacion.lat + ',' + c.ubicacion.lon);
+  const faltan = M.orden.map(cliente).filter(c => c && !comproHoy(c)).length;
+  return `<section class="card trip" style="--c:var(--agua)"><div class="tot"><h2>Ruta del día</h2><span class="muted">${faltan} por visitar${M.por ? ' · armada por ' + esc(nice(M.por)) : ''}</span></div>
+    ${pts.length ? `<a class="btn" style="text-align:center;text-decoration:none" target="_blank" href="https:\/\/www.google.com/maps/dir/${pts.join('/')}">Abrir todo el recorrido en Google Maps</a>` : ''}
+    ${filas}</section>`;
+}
+VISTAS.rutaManual = (p) => {
+  const R = S.rutaEd || (S.rutaEd = { orden: (S.rutaManual && S.rutaManual.orden || []).slice(), q: '' });
+  const q = (R.q || '').toLowerCase();
+  const fuera = S.data.clientes.filter(c => c.id !== S.data.idPlanta && c.id !== S.data.idPaso && c.estatus !== 'INACTIVO' && R.orden.indexOf(c.id) < 0 && (!q || c.nombre.toLowerCase().indexOf(q) >= 0));
+  const filas = R.orden.map((id, i) => { const c = cliente(id); if (!c) return ''; return `<div class="rm-fila"><span class="num" style="--c:var(--agua)">${i + 1}</span><div class="who"><b>${esc(nice(c.nombre))}</b><small>${money(c.precios.GARRAFON)} · ${c.ubicacion ? 'con ubicación' : 'sin ubicación'}</small></div>
+    <button class="btn sec small" data-rm="up" data-i="${i}" aria-label="Subir" ${i === 0 ? 'disabled' : ''}>↑</button><button class="btn sec small" data-rm="down" data-i="${i}" aria-label="Bajar" ${i === R.orden.length - 1 ? 'disabled' : ''}>↓</button><button class="btn sec small" data-rm="del" data-i="${i}" aria-label="Quitar">✕</button></div>`; }).join('');
+  return marco('Armar ruta', 'Tú decides a quién se visita primero', `
+    <div class="card"><div class="lbl">Orden de visita (${R.orden.length})</div>${filas || '<p class="muted" style="margin:0">Todavía no hay clientes. Agrégalos abajo en el orden en que se deben visitar, o empieza con la sugerida.</p>'}</div>
+    <div class="grid2"><button class="btn sec" data-rm="sugerida">Empezar con la sugerida</button><button class="btn sec" data-rm="vaciar">Vaciar</button></div>
+    <button class="btn" data-rm="guardar">Guardar ruta de hoy</button>
+    ${S.rutaManual && S.rutaManual.orden && S.rutaManual.orden.length ? '<button class="btn sec" data-rm="quitar">Quitar la ruta manual (volver a la sugerida)</button>' : ''}
+    <div class="lbl">Agregar clientes</div>
+    <div class="search"><input class="inp" id="rmBuscar" placeholder="Buscar cliente…" value="${esc(R.q || '')}" autocomplete="off"></div>
+    ${fuera.slice(0, 60).map(c => `<div class="cli-fila"><button class="row" data-rm="add" data-id="${c.id}"><div class="who"><b>+ ${esc(nice(c.nombre))}</b><small class="cli-precio">Garrafón <span class="cp">${money(c.precios.GARRAFON)}</span>${c.diasDesde != null ? ' · compró hace ' + c.diasDesde + ' días' : ''}</small></div></button>${botonIr(c.id)}</div>`).join('')}`, true);
+};
+VISTAS.rutaManual.despues = () => { const b = $('#rmBuscar'); if (b) b.oninput = () => { S.rutaEd.q = b.value; const pos = b.selectionStart; render(); const n = $('#rmBuscar'); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }; };
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-rm]'); if (!b || !S.rutaEd) return;
+  const R = S.rutaEd, i = +b.dataset.i, a = b.dataset.rm;
+  if (a === 'add') R.orden.push(b.dataset.id);
+  else if (a === 'del') R.orden.splice(i, 1);
+  else if (a === 'up' && i > 0) [R.orden[i - 1], R.orden[i]] = [R.orden[i], R.orden[i - 1]];
+  else if (a === 'down' && i < R.orden.length - 1) [R.orden[i + 1], R.orden[i]] = [R.orden[i], R.orden[i + 1]];
+  else if (a === 'vaciar') R.orden = [];
+  else if (a === 'sugerida') { const Rt = S.ruta; if (Rt) R.orden = Rt.viajes.reduce((t, v) => t.concat(v.paradas.map(p => p.id)), []).filter((x, k, arr) => arr.indexOf(x) === k); else return toast('Abre primero la Ruta de hoy para tener la sugerida', true); }
+  else if (a === 'guardar' || a === 'quitar') {
+    try { S.rutaManual = await run('apiRutaManualGuardar', [S.token, a === 'quitar' ? [] : R.orden], 'Guardando la ruta…'); S.rutaEd = null; toast(a === 'quitar' ? 'Volviste a la ruta sugerida' : 'Ruta guardada: ya la ve el repartidor'); atras(); } catch (err) {}
+    return;
+  }
+  render();
 });
 
 /* ============ facturas (dueño y contador) ============ */
@@ -2991,7 +3239,7 @@ document.addEventListener('click', async e => {
       S.precorte = null; raiz('inicio');
     }
     else if (a === 'guardarCalidad') {
-      await run('apiCalidad', [S.token, { punto: $('#qPunto').value, cloro: $('#qCloro').value, tds: $('#qTds').value, ph: $('#qPh').value }], 'Guardando…');
+      await run('apiCalidad', [S.token, { punto: $('#qPunto').value, cloro: $('#qCloro').value, tds: $('#qTds').value, ph: $('#qPh').value, obs: $('#qObs').value }], 'Guardando…'); if (S.bit) S.bit.data = null;
       toast('Lectura guardada'); atras();
     }
     else if (a === 'guardarCliente') {
